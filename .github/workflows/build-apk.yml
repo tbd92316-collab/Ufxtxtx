@@ -3,7 +3,7 @@ name: Build Automated AdBlock YouTube APK
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: # इससे आप जब चाहें मैन्युअल रूप से भी बटन दबाकर APK बना सकते हैं
+  workflow_dispatch: 
 
 jobs:
   build-android:
@@ -130,7 +130,6 @@ jobs:
 
                 function loadVideo(id, title) {
                     window.scrollTo({top: 0, behavior: 'smooth'});
-                    // Secure Sandbox stream bypassing ad payload requests
                     mainPlayer.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&modestbranding=1&rel=0`;
                     videoTitle.innerText = title;
                     playerBox.style.display = 'block';
@@ -215,8 +214,11 @@ jobs:
         dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
         EOF
 
-    - name: Setup Gradle System Wrapper
-      uses: gradle/gradle-build-action@v3
+    # Fixes the deprecation & compiler invocation issue completely
+    - name: Setup Gradle Build Environment
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: 8.4
 
     - name: 🏗️ Compile and Build APK Package
       run: gradle assembleDebug
