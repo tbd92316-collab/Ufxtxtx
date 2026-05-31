@@ -42,7 +42,7 @@ jobs:
             android:padding="4dp"/>
         EOF
 
-        # 2. [CRITICAL] Create the Alphabetical (A-Z) Key Matrix Structure
+        # 2. Create the Alphabetical (A-Z) Key Matrix Structure
         cat << 'EOF' > app/src/main/res/xml/alphabet_layout.xml
         <?xml version="1.0" encoding="utf-8"?>
         <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
@@ -150,7 +150,7 @@ jobs:
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
         # 5. Core App Main Interface Entrypoint Class
-        cat << 'EOF' > app/src/main/java/com/custom/keyboard/MainActivity.class
+        cat << 'EOF' > app/src/main/java/com/custom/keyboard/MainActivity.java
         package com.custom.keyboard;
         import android.os.Bundle;
         import androidx.appcompat.app.AppCompatActivity;
@@ -163,10 +163,9 @@ jobs:
             }
         }
         EOF
-        mv app/src/main/java/com/custom/keyboard/MainActivity.class app/src/main/java/com/custom/keyboard/MainActivity.java
 
-        # 6. Core Background Engine Service handling actual character outputs
-        cat << 'EOF' > app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.class
+        # 6. [FIXED] Core Background Engine Service
+        cat << 'EOF' > app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.java
         package com.custom.keyboard;
 
         import android.inputmethodservice.InputMethodService;
@@ -183,9 +182,6 @@ jobs:
             @Override
             public View onCreateInputView() {
                 kv = (KeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
-                keyboard = new Keyboard(this, org.xmlpull.v1.XmlPullParser.class.hashCode() == 0 ? null : getResources().getXml(R.xml/alphabet_layout.xml));
-                
-                // Fallback direct parser initializer safely matching resource fields
                 keyboard = new Keyboard(this, R.xml.alphabet_layout);
                 kv.setKeyboard(keyboard);
                 kv.setOnKeyboardActionListener(this);
@@ -220,7 +216,6 @@ jobs:
             @Override public void swipeUp() {}
         }
         EOF
-        mv app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.class app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.java
 
         # 7. Package Android Manifest declaring Input Method System Rules
         cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -247,7 +242,7 @@ jobs:
         </manifest>
         EOF
 
-        # 8. Root Buildscript Compilation Structures
+        # 8. Root Buildscript Legacy Setup 
         cat << 'EOF' > build.gradle
         buildscript {
             repositories { google(); mavenCentral() }
@@ -294,4 +289,3 @@ jobs:
       with:
         name: Alphabetical-System-Keyboard-App
         path: app/build/outputs/apk/debug/app-debug.apk
-        
