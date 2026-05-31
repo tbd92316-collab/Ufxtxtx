@@ -192,13 +192,33 @@ jobs:
         </manifest>
         EOF
 
-        # 5. Automatically generate Root build.gradle and Settings
-        echo "include ':app'" > settings.gradle
+        # 5. [CRITICAL FIX] Automatically generate settings.gradle with Google Maven Plugin Repositories
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        include ':app'
+        EOF
+
+        # 6. Setup base compiler configurations
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 6. Automatically generate App build.gradle Configuration
+        # 7. Automatically generate App build.gradle Configuration
         cat << 'EOF' > app/build.gradle
-        plugins { id 'com.android.application' }
+        plugins { 
+            id 'com.android.application' version '8.2.2'
+        }
         android {
             namespace "com.adblock.ytapp"
             compileSdk 34
@@ -214,7 +234,6 @@ jobs:
         dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
         EOF
 
-    # Fixes the deprecation & compiler invocation issue completely
     - name: Setup Gradle Build Environment
       uses: gradle/actions/setup-gradle@v4
       with:
@@ -228,4 +247,3 @@ jobs:
       with:
         name: YouTube-AdBlocker-APK
         path: app/build/outputs/apk/debug/app-debug.apk
-        
