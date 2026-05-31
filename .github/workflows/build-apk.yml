@@ -1,4 +1,4 @@
-name: Build AI Hand Tracking Cursor APK
+name: Build Custom ABCDE System Keyboard APK
 
 on:
   push:
@@ -19,319 +19,265 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate Smart AI Hand Tracking Project
+    - name: ⚙️ Auto-Generate System Alphabetical Keyboard Project
       run: |
         echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
+        mkdir -p app/src/main/res/xml/
         mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/java/com/ai/handcursor/
+        mkdir -p app/src/main/java/com/custom/keyboard/
 
-        # 1. Generate Full Screen Camera Background Layout with Tracking Target Square Overlay
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        # 1. Generate XML Layout for the Keyboard Viewer Component
+        cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
         <?xml version="1.0" encoding="utf-8"?>
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:id="@+id/mainLayout"
+        <android.inputmethodservice.KeyboardView 
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/keyboard_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#000000">
-
-            <!-- Fullscreen Live Front Camera Preview Background -->
-            <androidx.camera.view.PreviewView
-                android:id="@+id/cameraPreview"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-            <!-- Real-time Status Overlay -->
-            <LinearLayout
-                android:id="@+id/topBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#B3000000"
-                android:padding="12dp"
-                android:layout_alignParentTop="true">
-                
-                <TextView
-                    android:id="@+id/statusText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📷 System: INITIALIZING FRONT CAMERA..."
-                    android:textColor="#FFFF00"
-                    android:layout_gravity="center"
-                    android:textStyle="bold"
-                    android:textSize="16sp"/>
-            </LinearLayout>
-
-            <!-- Dynamic Square Box Layer that locks onto your palm -->
-            <View
-                android:id="@+id/palmTrackerSquare"
-                android:layout_width="140dp"
-                android:layout_height="140dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:backgroundTint="#00FF00"
-                android:visibility="invisible" />
-
-            <!-- Interactive Workspace Container (Holds Testing drag buttons) -->
-            <FrameLayout
-                android:id="@+id/workspace"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_below="@id/topBar">
-
-                <Button android:id="@+id/btn1" android:layout_width="100dp" android:layout_height="60dp" android:text="Red" android:backgroundTint="#FF0000" android:layout_gravity="top|left" android:layout_margin="30dp"/>
-                <Button android:id="@+id/btn2" android:layout_width="100dp" android:layout_height="60dp" android:text="Blue" android:backgroundTint="#0000FF" android:layout_gravity="top|right" android:layout_margin="30dp"/>
-                <Button android:id="@+id/btn3" android:layout_width="100dp" android:layout_height="60dp" android:text="Green" android:backgroundTint="#00FF00" android:layout_gravity="bottom|left" android:layout_margin="120dp"/>
-                <Button android:id="@+id/btn4" android:layout_width="100dp" android:layout_height="60dp" android:text="Yellow" android:backgroundTint="#FFFF00" android:textColor="#000" android:layout_gravity="bottom|right" android:layout_margin="120dp"/>
-            </FrameLayout>
-
-            <!-- Virtual Pointer Cursor Controlled ONLY by Hand Movement Matrix -->
-            <ImageView
-                android:id="@+id/virtualCursor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@android:drawable/ic_menu_compass"
-                android:visibility="gone"
-                android:tint="#00FFFF"/>
-        </RelativeLayout>
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:keyBackground="@android:drawable/btn_default"
+            android:keyTextColor="#FFFFFF"
+            android:background="#1A1A1A"
+            android:padding="4dp"/>
         EOF
 
-        # 2. Build Styles Configurations
+        # 2. [CRITICAL] Create the Alphabetical (A-Z) Key Matrix Structure
+        cat << 'EOF' > app/src/main/res/xml/alphabet_layout.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
+            android:keyWidth="14%p"
+            android:keyHeight="55dp"
+            android:horizontalGap="1%p"
+            android:verticalGap="6dp">
+
+            <Row>
+                <Key android:codes="97" android:keyLabel="a" />
+                <Key android:codes="98" android:keyLabel="b" />
+                <Key android:codes="99" android:keyLabel="c" />
+                <Key android:codes="100" android:keyLabel="d" />
+                <Key android:codes="101" android:keyLabel="e" />
+                <Key android:codes="102" android:keyLabel="f" />
+                <Key android:codes="103" android:keyLabel="g" />
+            </Row>
+
+            <Row>
+                <Key android:codes="104" android:keyLabel="h" />
+                <Key android:codes="105" android:keyLabel="i" />
+                <Key android:codes="106" android:keyLabel="j" />
+                <Key android:codes="107" android:keyLabel="k" />
+                <Key android:codes="108" android:keyLabel="l" />
+                <Key android:codes="109" android:keyLabel="m" />
+                <Key android:codes="110" android:keyLabel="n" />
+            </Row>
+
+            <Row>
+                <Key android:codes="111" android:keyLabel="o" />
+                <Key android:codes="112" android:keyLabel="p" />
+                <Key android:codes="113" android:keyLabel="q" />
+                <Key android:codes="114" android:keyLabel="r" />
+                <Key android:codes="115" android:keyLabel="s" />
+                <Key android:codes="116" android:keyLabel="t" />
+                <Key android:codes="117" android:keyLabel="u" />
+            </Row>
+
+            <Row>
+                <Key android:codes="118" android:keyLabel="v" />
+                <Key android:codes="119" android:keyLabel="w" />
+                <Key android:codes="120" android:keyLabel="x" />
+                <Key android:codes="121" android:keyLabel="y" />
+                <Key android:codes="122" android:keyLabel="z" />
+                <Key android:codes="-5" android:keyLabel="DEL" android:keyWidth="29%p" />
+            </Row>
+
+            <Row>
+                <Key android:codes="32" android:keyLabel="SPACE" android:keyWidth="69%p" />
+                <Key android:codes="10" android:keyLabel="ENTER" android:keyWidth="29%p" />
+            </Row>
+        </Keyboard>
+        EOF
+
+        # 3. Method Subtype Configuration xml file
+        cat << 'EOF' > app/src/main/res/xml/method.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <input-method xmlns:android="http://schemas.android.com/apk/res/android">
+            <subtype
+                android:label="ABCDE Simple Layout"
+                android:imeSubtypeLocale="en_US"
+                android:imeSubtypeMode="keyboard" />
+        </input-method>
+        EOF
+
+        # 4. Main Settings Setup Activity UI (Instructions to enable keyboard)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#121212"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔤 ABCDE Custom System Keyboard"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="30dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="How to Activate:\n\n1. Go to Phone Settings -> Languages &amp; Input.\n2. Click 'Manage Keyboards'.\n3. Turn on 'ABCDE Simple Keyboard'.\n4. Open any app (like WhatsApp) and select this keyboard!"
+                android:textColor="#BBBBBB"
+                android:textSize="15sp"
+                android:lineSpacingExtra="5dp"
+                android:layout_marginBottom="40dp"/>
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Tap here to test your new keyboard..."
+                android:textColorHint="#555555"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#00FFFF"/>
+        </LinearLayout>
+        EOF
+
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. MainActivity Engine - Locks Front Camera Stream, Performs Realtime Tracking Calculations
-        cat << 'EOF' > app/src/main/java/com/ai/handcursor/MainActivity.java
-        package com.ai.handcursor;
-
-        import android.Manifest;
-        import android.content.pm.PackageManager;
-        import android.graphics.Color;
-        import android.graphics.drawable.GradientDrawable;
+        # 5. Core App Main Interface Entrypoint Class
+        cat << 'EOF' > app/src/main/java/com/custom/keyboard/MainActivity.class
+        package com.custom.keyboard;
         import android.os.Bundle;
-        import android.view.MotionEvent;
-        import android.view.View;
-        import android.view.ViewGroup;
-        import android.widget.Button;
-        import android.widget.ImageView;
-        import android.widget.TextView;
-        import android.widget.Toast;
-        import androidx.annotation.NonNull;
         import androidx.appcompat.app.AppCompatActivity;
-        import androidx.camera.core.CameraSelector;
-        import androidx.camera.core.Preview;
-        import androidx.camera.lifecycle.ProcessCameraProvider;
-        import androidx.camera.view.PreviewView;
-        import androidx.core.app.ActivityCompat;
-        import androidx.core.content.ContextCompat;
-        import com.google.common.util.concurrent.ListenableFuture;
-        import java.util.Random;
-        import java.util.concurrent.ExecutionException;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int CAMERA_REQ_CODE = 101;
-            private PreviewView cameraPreview;
-            private ImageView cursor;
-            private View trackerSquare;
-            private TextView status;
-            private float dX, dY;
-            private boolean isTrackingActive = false;
-
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
-
-                cameraPreview = findViewById(R.id.cameraPreview);
-                cursor = findViewById(R.id.virtualCursor);
-                trackerSquare = findViewById(R.id.palmTrackerSquare);
-                status = findViewById(R.id.statusText);
-
-                // Design the tracking rectangle box overlay layout programmatically
-                GradientDrawable border = new GradientDrawable();
-                border.setColor(Color.TRANSPARENT);
-                border.setStroke(6, Color.GREEN);
-                trackerSquare.setBackground(border);
-
-                setupTestingButtons(findViewById(R.id.btn1));
-                setupTestingButtons(findViewById(R.id.btn2));
-                setupTestingButtons(findViewById(R.id.btn3));
-                setupTestingButtons(findViewById(R.id.btn4));
-
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQ_CODE);
-                } else {
-                    startFrontCameraEngine();
-                }
-            }
-
-            // Starts the on-device native front camera hardware layer to render inside the background view
-            private void startFrontCameraEngine() {
-                ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-                cameraProviderFuture.addListener(() -> {
-                    try {
-                        ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                        Preview preview = new Preview.Builder().build();
-                        preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
-
-                        // Forces front camera invocation so the user sees themselves on screen background
-                        CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
-                        cameraProvider.unbindAll();
-                        cameraProvider.bindToLifecycle(this, cameraSelector, preview);
-                        
-                        initializeLiveHandTracker();
-                    } catch (ExecutionException | InterruptedException e) {
-                        status.setText("Camera Setup Error!");
-                    }
-                }, ContextCompat.getMainExecutor(this));
-            }
-
-            // Real-time tracking loop linked to native screen interaction mechanics
-            private void initializeLiveHandTracker() {
-                status.setText("🙌 PALM DETECTED: SUCCESS!");
-                trackerSquare.setVisibility(View.VISIBLE);
-                cursor.setVisibility(View.VISIBLE);
-                isTrackingActive = true;
-
-                // Captures touch coordinate streams to serve as a hardware hand simulation node
-                // When your palm moves across the screen camera surface, the square and cursor update instantly!
-                cameraPreview.setOnTouchListener((v, event) -> {
-                    if (!isTrackingActive) return false;
-
-                    float touchX = event.getX();
-                    float touchY = event.getY();
-
-                    // Center the tracking square around your active palm location
-                    trackerSquare.setX(touchX - (trackerSquare.getWidth() / 2f));
-                    trackerSquare.setY(touchY - (trackerSquare.getHeight() / 2f));
-
-                    // Control cursor position directly from hand coordinate input vectors (Auto rotation is dead!)
-                    cursor.setX(touchX);
-                    cursor.setY(touchY);
-
-                    // Multi-finger check gesture simulation (Triggers virtual tap sequences on 2-finger action releases)
-                    if (event.getAction() == MotionEvent.ACTION_UP) {
-                        status.setText("✌️ 2 FINGERS GESTURE: TRIGGER CLICK!");
-                        triggerVirtualClick(touchX, touchY);
-                    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                        status.setText("🙌 TRACKING ACTIVE [Square Locked]");
-                    }
-                    return true;
-                });
-            }
-
-            private void setupTestingButtons(final Button btn) {
-                btn.setOnClickListener(v -> {
-                    Random rng = new Random();
-                    int color = Color.argb(255, rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-                    btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-                    Toast.makeText(MainActivity.this, "Action Tap Success!", Toast.LENGTH_SHORT).show();
-                });
-
-                btn.setOnTouchListener((v, event) -> {
-                    switch (event.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            dX = v.getX() - event.getRawX();
-                            dY = v.getY() - event.getRawY();
-                            break;
-                        case MotionEvent.ACTION_MOVE:
-                            v.animate().x(event.getRawX() + dX).y(event.getRawY() + dY).setDuration(0).start();
-                            break;
-                        default:
-                            return false;
-                    }
-                    return true;
-                });
-            }
-
-            private void triggerVirtualClick(float x, float y) {
-                ViewGroup root = findViewById(R.id.workspace);
-                for (int i = 0; i < root.getChildCount(); i++) {
-                    View child = root.getChildAt(i);
-                    if (child instanceof Button) {
-                        int[] location = new int[2];
-                        child.getLocationOnScreen(location);
-                        if (x >= location[0] && x <= (location[0] + child.getWidth()) &&
-                            y >= location[1] && y <= (location[1] + child.getHeight())) {
-                            child.performClick();
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onRequestPermissionsResult(int rc, @NonNull String[] p, @NonNull int[] gr) {
-                super.onRequestPermissionsResult(rc, p, gr);
-                if (rc == CAMERA_REQ_CODE && gr.length > 0 && gr[0] == PackageManager.PERMISSION_GRANTED) {
-                    startFrontCameraEngine();
-                } else {
-                    status.setText("Camera Permission Required!");
-                }
             }
         }
         EOF
+        mv app/src/main/java/com/custom/keyboard/MainActivity.class app/src/main/java/com/custom/keyboard/MainActivity.java
 
-        # 4. Write App Manifest rules securely requested
+        # 6. Core Background Engine Service handling actual character outputs
+        cat << 'EOF' > app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.class
+        package com.custom.keyboard;
+
+        import android.inputmethodservice.InputMethodService;
+        import android.inputmethodservice.Keyboard;
+        import android.inputmethodservice.KeyboardView;
+        import android.view.KeyEvent;
+        import android.view.View;
+        import android.view.inputmethod.InputConnection;
+
+        public class SimpleABCKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
+            private KeyboardView kv;
+            private Keyboard keyboard;
+
+            @Override
+            public View onCreateInputView() {
+                kv = (KeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
+                keyboard = new Keyboard(this, org.xmlpull.v1.XmlPullParser.class.hashCode() == 0 ? null : getResources().getXml(R.xml/alphabet_layout.xml));
+                
+                // Fallback direct parser initializer safely matching resource fields
+                keyboard = new Keyboard(this, R.xml.alphabet_layout);
+                kv.setKeyboard(keyboard);
+                kv.setOnKeyboardActionListener(this);
+                return kv;
+            }
+
+            @Override
+            public void onKey(int primaryCode, int[] keyCodes) {
+                InputConnection ic = getCurrentInputConnection();
+                if (ic == null) return;
+
+                switch (primaryCode) {
+                    case Keyboard.KEYCODE_DELETE:
+                        ic.deleteSurroundingText(1, 0);
+                        break;
+                    case 10: // Enter Key
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                        break;
+                    default:
+                        char code = (char) primaryCode;
+                        ic.commitText(String.valueOf(code), 1);
+                }
+            }
+
+            @Override public void onPress(int primaryCode) {}
+            @Override public void onRelease(int primaryCode) {}
+            @Override public void onText(CharSequence text) {}
+            @Override public void swipeLeft() {}
+            @Override public void swipeRight() {}
+            @Override public void swipeDown() {}
+            @Override public void swipeUp() {}
+        }
+        EOF
+        mv app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.class app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.java
+
+        # 7. Package Android Manifest declaring Input Method System Rules
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-feature android:name="android.hardware.camera" />
-            <application android:label="AI Hand Cursor Tracker" android:theme="@style/Theme.App">
-                <activity android:name="com.ai.handcursor.MainActivity" android:exported="true">
+            <application android:label="ABCDE Simple Keyboard" android:theme="@style/Theme.App">
+                
+                <activity android:name="com.custom.keyboard.MainActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
+
+                <service android:name="com.custom.keyboard.SimpleABCKeyboard"
+                    android:permission="android.permission.BIND_INPUT_METHOD"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.view.InputMethod" />
+                    </intent-filter>
+                    <meta-data android:name="android.view.im" android:resource="@xml/method" />
+                </service>
+
             </application>
         </manifest>
         EOF
 
-        # 5. Root Buildscript Legacy Setup 
+        # 8. Root Buildscript Compilation Structures
         cat << 'EOF' > build.gradle
         buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.2.2'
-            }
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
         }
         allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
+            repositories { google(); mavenCentral() }
         }
         EOF
 
         echo "include ':app'" > settings.gradle
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 6. Build App Gradle Configurations with Native Camera System Dependencies
+        # 9. App Specification Module Rules
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
-
         android {
-            namespace "com.ai.handcursor"
+            namespace "com.custom.keyboard"
             compileSdk 34
             defaultConfig {
-                applicationId "com.ai.handcursor"
-                minSdk 24
+                applicationId "com.custom.keyboard"
+                minSdk 21
                 targetSdk 34
                 versionCode 1
                 versionName "1.0"
             }
         }
-
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
-            
-            // Jetpack CameraX Core Modules
-            implementation 'androidx.camera:camera-camera2:1.3.1'
-            implementation 'androidx.camera:camera-view:1.3.1'
-            implementation 'androidx.camera:camera-lifecycle:1.3.1'
-            implementation 'com.google.guava:guava:32.1.3-android'
         }
         EOF
 
@@ -340,11 +286,12 @@ jobs:
       with:
         gradle-version: 8.4
 
-    - name: 🏗️ Run AI Compiler Engine
+    - name: 🏗️ Run Android Compiler Engine
       run: gradle assembleDebug
 
-    - name: 📥 Deliver Application Package
+    - name: 📥 Deliver Keyboard APK Package
       uses: actions/upload-artifact@v4
       with:
-        name: AI-Hand-Tracking-Cursor-App
+        name: Alphabetical-System-Keyboard-App
         path: app/build/outputs/apk/debug/app-debug.apk
+        
