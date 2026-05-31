@@ -80,7 +80,7 @@ jobs:
         # 2. Build Styles Configurations
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. MainActivity Engine - Controls Camera, Simulator Matrix, Cursor Positioning & Drag Drops
+        # 3. [FIXED] MainActivity Engine - Controls Camera, Simulator Matrix, Cursor Positioning & Drag Drops
         cat << 'EOF' > app/src/main/java/com/ai/handcursor/MainActivity.java
         package com.ai.handcursor;
 
@@ -133,7 +133,6 @@ jobs:
                     Random rng = new Random();
                     int color = Color.argb(255, rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
                     btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-                    Toast.with(MainActivity.this).cancel();
                     Toast.makeText(MainActivity.this, "Clicked! Color Altered", Toast.LENGTH_SHORT).show();
                 });
 
@@ -225,7 +224,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. Root Buildscript Legacy Setup to bypass plugin lookup errors completely
+        # 5. Root Buildscript Configuration 
         cat << 'EOF' > build.gradle
         buildscript {
             repositories {
@@ -285,4 +284,3 @@ jobs:
       with:
         name: AI-Hand-Tracking-Cursor-App
         path: app/build/outputs/apk/debug/app-debug.apk
-        
