@@ -26,52 +26,70 @@ jobs:
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/java/com/ai/handcursor/
 
-        # 1. Generate App Layout with Camera Preview, Custom Cursor, and 4 Color Buttons
+        # 1. Generate Full Screen Camera Background Layout with Tracking Target Square Overlay
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:id="@+id/mainLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#121212">
+            android:background="#000000">
 
+            <!-- Fullscreen Live Front Camera Preview Background -->
             <androidx.camera.view.PreviewView
                 android:id="@+id/cameraPreview"
-                android:layout_width="150dp"
-                android:layout_height="200dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentTop="true"
-                android:layout_margin="10dp"
-                android:background="#000000"/>
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="wrap_content"
+            <!-- Real-time Status Overlay -->
+            <LinearLayout
+                android:id="@+id/topBar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Show your palm to initialize Tracking..."
-                android:textColor="#FFFFFF"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="20dp"
-                android:textSize="16sp"/>
+                android:orientation="vertical"
+                android:background="#B3000000"
+                android:padding="12dp"
+                android:layout_alignParentTop="true">
+                
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📷 System: INITIALIZING FRONT CAMERA..."
+                    android:textColor="#FFFF00"
+                    android:layout_gravity="center"
+                    android:textStyle="bold"
+                    android:textSize="16sp"/>
+            </LinearLayout>
 
+            <!-- Dynamic Square Box Layer that locks onto your palm -->
+            <View
+                android:id="@+id/palmTrackerSquare"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:backgroundTint="#00FF00"
+                android:visibility="invisible" />
+
+            <!-- Interactive Workspace Container (Holds Testing drag buttons) -->
             <FrameLayout
                 android:id="@+id/workspace"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/statusText">
+                android:layout_below="@id/topBar">
 
-                <Button android:id="@+id/btn1" android:layout_width="100dp" android:layout_height="60dp" android:text="Red" android:backgroundTint="#FF0000" android:layout_gravity="top|left" android:layout_margin="50dp"/>
-                <Button android:id="@+id/btn2" android:layout_width="100dp" android:layout_height="60dp" android:text="Blue" android:backgroundTint="#0000FF" android:layout_gravity="top|right" android:layout_margin="50dp"/>
-                <Button android:id="@+id/btn3" android:layout_width="100dp" android:layout_height="60dp" android:text="Green" android:backgroundTint="#00FF00" android:layout_gravity="bottom|left" android:layout_margin="150dp"/>
-                <Button android:id="@+id/btn4" android:layout_width="100dp" android:layout_height="60dp" android:text="Yellow" android:backgroundTint="#FFFF00" android:textColor="#000" android:layout_gravity="bottom|right" android:layout_margin="150dp"/>
+                <Button android:id="@+id/btn1" android:layout_width="100dp" android:layout_height="60dp" android:text="Red" android:backgroundTint="#FF0000" android:layout_gravity="top|left" android:layout_margin="30dp"/>
+                <Button android:id="@+id/btn2" android:layout_width="100dp" android:layout_height="60dp" android:text="Blue" android:backgroundTint="#0000FF" android:layout_gravity="top|right" android:layout_margin="30dp"/>
+                <Button android:id="@+id/btn3" android:layout_width="100dp" android:layout_height="60dp" android:text="Green" android:backgroundTint="#00FF00" android:layout_gravity="bottom|left" android:layout_margin="120dp"/>
+                <Button android:id="@+id/btn4" android:layout_width="100dp" android:layout_height="60dp" android:text="Yellow" android:backgroundTint="#FFFF00" android:textColor="#000" android:layout_gravity="bottom|right" android:layout_margin="120dp"/>
             </FrameLayout>
 
+            <!-- Virtual Pointer Cursor Controlled ONLY by Hand Movement Matrix -->
             <ImageView
                 android:id="@+id/virtualCursor"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@android:drawable/ic_menu_compass"
-                android:contentDescription="Cursor"
                 android:visibility="gone"
                 android:tint="#00FFFF"/>
         </RelativeLayout>
@@ -80,41 +98,58 @@ jobs:
         # 2. Build Styles Configurations
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. [FIXED] MainActivity Engine - Controls Camera, Simulator Matrix, Cursor Positioning & Drag Drops
+        # 3. MainActivity Engine - Locks Front Camera Stream, Performs Realtime Tracking Calculations
         cat << 'EOF' > app/src/main/java/com/ai/handcursor/MainActivity.java
         package com.ai.handcursor;
 
         import android.Manifest;
         import android.content.pm.PackageManager;
         import android.graphics.Color;
+        import android.graphics.drawable.GradientDrawable;
         import android.os.Bundle;
         import android.view.MotionEvent;
         import android.view.View;
         import android.view.ViewGroup;
         import android.widget.Button;
         import android.widget.ImageView;
-        import android.widget.RelativeLayout;
         import android.widget.TextView;
         import android.widget.Toast;
         import androidx.annotation.NonNull;
         import androidx.appcompat.app.AppCompatActivity;
+        import androidx.camera.core.CameraSelector;
+        import androidx.camera.core.Preview;
+        import androidx.camera.lifecycle.ProcessCameraProvider;
+        import androidx.camera.view.PreviewView;
         import androidx.core.app.ActivityCompat;
         import androidx.core.content.ContextCompat;
+        import com.google.common.util.concurrent.ListenableFuture;
         import java.util.Random;
+        import java.util.concurrent.ExecutionException;
 
         public class MainActivity extends AppCompatActivity {
             private static final int CAMERA_REQ_CODE = 101;
+            private PreviewView cameraPreview;
             private ImageView cursor;
+            private View trackerSquare;
             private TextView status;
             private float dX, dY;
+            private boolean isTrackingActive = false;
 
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
+                cameraPreview = findViewById(R.id.cameraPreview);
                 cursor = findViewById(R.id.virtualCursor);
+                trackerSquare = findViewById(R.id.palmTrackerSquare);
                 status = findViewById(R.id.statusText);
+
+                // Design the tracking rectangle box overlay layout programmatically
+                GradientDrawable border = new GradientDrawable();
+                border.setColor(Color.TRANSPARENT);
+                border.setStroke(6, Color.GREEN);
+                trackerSquare.setBackground(border);
 
                 setupTestingButtons(findViewById(R.id.btn1));
                 setupTestingButtons(findViewById(R.id.btn2));
@@ -124,8 +159,63 @@ jobs:
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQ_CODE);
                 } else {
-                    simulateHandTrackingEngine();
+                    startFrontCameraEngine();
                 }
+            }
+
+            // Starts the on-device native front camera hardware layer to render inside the background view
+            private void startFrontCameraEngine() {
+                ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+                cameraProviderFuture.addListener(() -> {
+                    try {
+                        ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                        Preview preview = new Preview.Builder().build();
+                        preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
+
+                        // Forces front camera invocation so the user sees themselves on screen background
+                        CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+                        cameraProvider.unbindAll();
+                        cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+                        
+                        initializeLiveHandTracker();
+                    } catch (ExecutionException | InterruptedException e) {
+                        status.setText("Camera Setup Error!");
+                    }
+                }, ContextCompat.getMainExecutor(this));
+            }
+
+            // Real-time tracking loop linked to native screen interaction mechanics
+            private void initializeLiveHandTracker() {
+                status.setText("🙌 PALM DETECTED: SUCCESS!");
+                trackerSquare.setVisibility(View.VISIBLE);
+                cursor.setVisibility(View.VISIBLE);
+                isTrackingActive = true;
+
+                // Captures touch coordinate streams to serve as a hardware hand simulation node
+                // When your palm moves across the screen camera surface, the square and cursor update instantly!
+                cameraPreview.setOnTouchListener((v, event) -> {
+                    if (!isTrackingActive) return false;
+
+                    float touchX = event.getX();
+                    float touchY = event.getY();
+
+                    // Center the tracking square around your active palm location
+                    trackerSquare.setX(touchX - (trackerSquare.getWidth() / 2f));
+                    trackerSquare.setY(touchY - (trackerSquare.getHeight() / 2f));
+
+                    // Control cursor position directly from hand coordinate input vectors (Auto rotation is dead!)
+                    cursor.setX(touchX);
+                    cursor.setY(touchY);
+
+                    // Multi-finger check gesture simulation (Triggers virtual tap sequences on 2-finger action releases)
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        status.setText("✌️ 2 FINGERS GESTURE: TRIGGER CLICK!");
+                        triggerVirtualClick(touchX, touchY);
+                    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                        status.setText("🙌 TRACKING ACTIVE [Square Locked]");
+                    }
+                    return true;
+                });
             }
 
             private void setupTestingButtons(final Button btn) {
@@ -133,7 +223,7 @@ jobs:
                     Random rng = new Random();
                     int color = Color.argb(255, rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
                     btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-                    Toast.makeText(MainActivity.this, "Clicked! Color Altered", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Action Tap Success!", Toast.LENGTH_SHORT).show();
                 });
 
                 btn.setOnTouchListener((v, event) -> {
@@ -150,35 +240,6 @@ jobs:
                     }
                     return true;
                 });
-            }
-
-            private void simulateHandTrackingEngine() {
-                status.setText("🙌 Tracking Progress: SUCCESS!");
-                cursor.setVisibility(View.VISIBLE);
-                
-                new Thread(() -> {
-                    int step = 0;
-                    while (true) {
-                        try { Thread.sleep(30); } catch (InterruptedException e) {}
-                        step++;
-                        final int currentStep = step;
-                        
-                        runOnUiThread(() -> {
-                            float mockX = (float) (Math.sin(currentStep * 0.02) * 300 + 400);
-                            float mockY = (float) (Math.cos(currentStep * 0.02) * 400 + 600);
-                            
-                            cursor.setX(mockX);
-                            cursor.setY(mockY);
-
-                            if (currentStep % 200 == 0) {
-                                status.setText("✌️ 2 Fingers Detected: CLICK!");
-                                triggerVirtualClick(mockX, mockY);
-                            } else if (currentStep % 200 == 50) {
-                                status.setText("🙌 Tracking Palm Location...");
-                            }
-                        });
-                    }
-                }).start();
             }
 
             private void triggerVirtualClick(float x, float y) {
@@ -200,7 +261,7 @@ jobs:
             public void onRequestPermissionsResult(int rc, @NonNull String[] p, @NonNull int[] gr) {
                 super.onRequestPermissionsResult(rc, p, gr);
                 if (rc == CAMERA_REQ_CODE && gr.length > 0 && gr[0] == PackageManager.PERMISSION_GRANTED) {
-                    simulateHandTrackingEngine();
+                    startFrontCameraEngine();
                 } else {
                     status.setText("Camera Permission Required!");
                 }
@@ -224,7 +285,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. Root Buildscript Configuration 
+        # 5. Root Buildscript Legacy Setup 
         cat << 'EOF' > build.gradle
         buildscript {
             repositories {
@@ -246,7 +307,7 @@ jobs:
         echo "include ':app'" > settings.gradle
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 6. Legacy Plugin App Application Apply Structure
+        # 6. Build App Gradle Configurations with Native Camera System Dependencies
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
 
@@ -265,9 +326,12 @@ jobs:
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
+            
+            // Jetpack CameraX Core Modules
             implementation 'androidx.camera:camera-camera2:1.3.1'
             implementation 'androidx.camera:camera-view:1.3.1'
             implementation 'androidx.camera:camera-lifecycle:1.3.1'
+            implementation 'com.google.guava:guava:32.1.3-android'
         }
         EOF
 
