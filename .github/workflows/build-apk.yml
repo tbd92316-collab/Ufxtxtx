@@ -31,11 +31,10 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:id="@+id/mainLayout"
-            android:layout_width="match_size"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#121212">
 
-            <!-- Background Camera View to Track Palm -->
             <androidx.camera.view.PreviewView
                 android:id="@+id/cameraPreview"
                 android:layout_width="150dp"
@@ -55,21 +54,18 @@ jobs:
                 android:layout_marginTop="20dp"
                 android:textSize="16sp"/>
 
-            <!-- Testing Workspace Container -->
             <FrameLayout
                 android:id="@+id/workspace"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_below="@id/statusText">
 
-                <!-- 4 Testing Interaction Buttons -->
                 <Button android:id="@+id/btn1" android:layout_width="100dp" android:layout_height="60dp" android:text="Red" android:backgroundTint="#FF0000" android:layout_gravity="top|left" android:layout_margin="50dp"/>
                 <Button android:id="@+id/btn2" android:layout_width="100dp" android:layout_height="60dp" android:text="Blue" android:backgroundTint="#0000FF" android:layout_gravity="top|right" android:layout_margin="50dp"/>
                 <Button android:id="@+id/btn3" android:layout_width="100dp" android:layout_height="60dp" android:text="Green" android:backgroundTint="#00FF00" android:layout_gravity="bottom|left" android:layout_margin="150dp"/>
                 <Button android:id="@+id/btn4" android:layout_width="100dp" android:layout_height="60dp" android:text="Yellow" android:backgroundTint="#FFFF00" android:textColor="#000" android:layout_gravity="bottom|right" android:layout_margin="150dp"/>
             </FrameLayout>
 
-            <!-- Custom AI Gesture Guided Cursor Overlay -->
             <ImageView
                 android:id="@+id/virtualCursor"
                 android:layout_width="32dp"
@@ -84,7 +80,7 @@ jobs:
         # 2. Build Styles Configurations
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. MainActivity Engine - Controls Camera, MediaPipe Mapping, Cursor Positioning & Drag Drops
+        # 3. MainActivity Engine - Controls Camera, Simulator Matrix, Cursor Positioning & Drag Drops
         cat << 'EOF' > app/src/main/java/com/ai/handcursor/MainActivity.java
         package com.ai.handcursor;
 
@@ -110,7 +106,6 @@ jobs:
             private static final int CAMERA_REQ_CODE = 101;
             private ImageView cursor;
             private TextView status;
-            private View activeDragView = null;
             private float dX, dY;
 
             @Override
@@ -134,7 +129,6 @@ jobs:
             }
 
             private void setupTestingButtons(final Button btn) {
-                // Allows physical touch fallback testing and provides boundaries for the simulated AI virtual clicker
                 btn.setOnClickListener(v -> {
                     Random rng = new Random();
                     int color = Color.argb(255, rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
@@ -159,12 +153,10 @@ jobs:
                 });
             }
 
-            // On-device simulation algorithm representing MediaPipe node points mapping coordinates 
             private void simulateHandTrackingEngine() {
                 status.setText("🙌 Tracking Progress: SUCCESS!");
                 cursor.setVisibility(View.VISIBLE);
                 
-                // Loops a programmatic screen traversal path imitating palm moves 
                 new Thread(() -> {
                     int step = 0;
                     while (true) {
@@ -173,14 +165,12 @@ jobs:
                         final int currentStep = step;
                         
                         runOnUiThread(() -> {
-                            // Calculate continuous path loops inside viewport screen bounds
                             float mockX = (float) (Math.sin(currentStep * 0.02) * 300 + 400);
                             float mockY = (float) (Math.cos(currentStep * 0.02) * 400 + 600);
                             
                             cursor.setX(mockX);
                             cursor.setY(mockY);
 
-                            // Every 150 cycles, simulate 2 fingers extended gesture -> Triggers Click/Drag action sequence
                             if (currentStep % 200 == 0) {
                                 status.setText("✌️ 2 Fingers Detected: CLICK!");
                                 triggerVirtualClick(mockX, mockY);
@@ -235,13 +225,32 @@ jobs:
         </manifest>
         EOF
 
-        # 5. Core properties and project pipelines
+        # 5. Root Buildscript Legacy Setup to bypass plugin lookup errors completely
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.2.2'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+
         echo "include ':app'" > settings.gradle
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 6. Build Gradle Setup
+        # 6. Legacy Plugin App Application Apply Structure
         cat << 'EOF' > app/build.gradle
-        plugins { id 'com.android.application' version '8.2.2' }
+        apply plugin: 'com.android.application'
+
         android {
             namespace "com.ai.handcursor"
             compileSdk 34
@@ -253,10 +262,10 @@ jobs:
                 versionName "1.0"
             }
         }
+
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
-            // CameraX Core Engine Module integration
             implementation 'androidx.camera:camera-camera2:1.3.1'
             implementation 'androidx.camera:camera-view:1.3.1'
             implementation 'androidx.camera:camera-lifecycle:1.3.1'
@@ -276,3 +285,4 @@ jobs:
       with:
         name: AI-Hand-Tracking-Cursor-App
         path: app/build/outputs/apk/debug/app-debug.apk
+        
