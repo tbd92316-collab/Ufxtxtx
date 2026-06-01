@@ -49,7 +49,7 @@ jobs:
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Steps to make it work:\n\n1. Tap 'WAKE UP JUNIOR' and allow Microphone and System Modify permissions.\n2. When Junior is running, say 'Junior' clearly.\n3. Make sure your Media Volume is UP so you can hear Junior reply 'Yes Sir!'"
+                android:text="Steps to make it work:\n\n1. Tap 'WAKE UP JUNIOR'.\n2. Allow Microphone & Notifications when asked.\n3. Check your Status Bar - you must see the 'Junior Active' notification.\n4. Call 'Junior' and wait for his response!"
                 android:textColor="#CFD8DC"
                 android:textSize="15sp"
                 android:lineSpacingExtra="6dp"
@@ -76,7 +76,7 @@ jobs:
 
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. Main Configuration Entrypoint
+        # 3. [FIXED] Main Configuration Entrypoint - Added Notification & Mic Permissions for Android 13/14
         cat << 'EOF' > app/src/main/java/com/ai/junior/MainActivity.java
         package com.ai.junior;
 
@@ -101,32 +101,47 @@ jobs:
 
                 Button initBtn = findViewById(R.id.btnInitialize);
                 initBtn.setOnClickListener(v -> {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
-                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
-                        Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                        intent.setData(Uri.parse("package:" + getPackageName()));
-                        startActivity(intent);
-                        Toast.makeText(this, "Allow Settings Modification Permissions", Toast.LENGTH_LONG).show();
-                    } else {
-                        Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent);
-                        } else {
-                            startService(serviceIntent);
-                        }
-                        Toast.makeText(this, "Junior Engine Initialized Successfully!", Toast.LENGTH_SHORT).show();
-                    }
+                    checkAndStartService();
                 });
+            }
+
+            private void checkAndStartService() {
+                // Request Audio Permission
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
+                    return;
+                }
+                
+                // Request Notification Permission for Android 13+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 202);
+                        return;
+                    }
+                }
+
+                // Request Modify Settings Permission
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                    Toast.makeText(this, "Allow Modify System Settings", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                // Start Foreground Service safely
+                Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                Toast.makeText(this, "Junior Engine Initialized! Check Status Bar.", Toast.LENGTH_LONG).show();
             }
         }
         EOF
 
-        # 4. [UPGRADED] Core Background Daemon with Persistent Wake-Lock & Forced Speech Restart Loop
-        cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.class
-        // Overwriting Java file with fixed initialization pipeline
-        EOF
-
+        # 4. Core Background Daemon
         cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.java
         package com.ai.junior;
 
@@ -136,6 +151,7 @@ jobs:
         import android.app.Service;
         import android.content.Context;
         import android.content.Intent;
+        import android.content.pm.ServiceInfo;
         import android.media.AudioManager;
         import android.net.Uri;
         import android.os.Build;
@@ -165,10 +181,7 @@ jobs:
             public void onCreate() {
                 super.onCreate();
                 audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-                
-                // Force Immediate TTS Setup so it speaks instantly
                 tts = new TextToSpeech(this, this, "com.google.android.tts");
-                
                 initializeRecognizer();
             }
 
@@ -195,17 +208,21 @@ jobs:
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel channel = new NotificationChannel("junior_core", "Junior AI Engine Running", NotificationManager.IMPORTANCE_HIGH);
+                    NotificationChannel channel = new NotificationChannel("junior_core", "Junior AI Engine", NotificationManager.IMPORTANCE_HIGH);
                     NotificationManager manager = getSystemService(NotificationManager.class);
                     if (manager != null) manager.createNotificationChannel(channel);
                     
-                    Notification notification = new Notification.Builder(this, "junior_core")
-                            .setContentTitle("Junior Assistant is Listening")
+                    Notification.Builder builder = new Notification.Builder(this, "junior_core")
+                            .setContentTitle("Junior Assistant Active")
                             .setContentText("Say 'Junior' out loud...")
                             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                            .setOngoing(true)
-                            .build();
-                    startForeground(105, notification);
+                            .setOngoing(true);
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(105, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+                    } else {
+                        startForeground(105, builder.build());
+                    }
                 }
                 return START_STICKY;
             }
@@ -228,7 +245,7 @@ jobs:
             private void restartRecognizerLater() {
                 isListening = false;
                 mainHandler.removeCallbacksAndMessages(null);
-                mainHandler.postDelayed(this::initializeRecognizer, 800); // Superfast 800ms auto-wake loop
+                mainHandler.postDelayed(this::initializeRecognizer, 800);
             }
 
             private void setupListener() {
@@ -248,7 +265,6 @@ jobs:
                     @Override
                     public void onError(int error) {
                         isListening = false;
-                        // Error 6 or 7 mean Speech Timeout, auto-reset loop instantly
                         restartRecognizerLater();
                     }
 
@@ -333,7 +349,7 @@ jobs:
             public void onInit(int status) {
                 if (status == TextToSpeech.SUCCESS) { 
                     tts.setLanguage(Locale.US); 
-                    tts.setSpeechRate(1.1f); // Smooth realistic response speed
+                    tts.setSpeechRate(1.1f); 
                 }
             }
 
@@ -344,19 +360,21 @@ jobs:
                 super.onDestroy();
                 if (speechRecognizer != null) speechRecognizer.destroy();
                 if (tts != null) tts.shutdown();
-                // If system kills it, trigger automatic service restart
                 sendBroadcast(new Intent("RestartJuniorService"));
             }
         }
         EOF
 
-        # 5. Application Android Manifest Configuration
+        # 5. [CRITICAL FIX] Application Android Manifest Configuration
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
             <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
             <uses-permission android:name="android.permission.WRITE_SETTINGS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
+            
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
             
             <application android:label="Junior AI Pro" android:theme="@style/Theme.App">
                 
@@ -367,7 +385,9 @@ jobs:
                     </intent-filter>
                 </activity>
 
-                <service android:name="com.ai.junior.JuniorAssistantService" android:exported="false" />
+                <service android:name="com.ai.junior.JuniorAssistantService" 
+                         android:exported="false"
+                         android:foregroundServiceType="microphone" />
 
             </application>
         </manifest>
