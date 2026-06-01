@@ -1,4 +1,4 @@
-name: Build Custom ABCDE System Keyboard APK
+name: Build PC Style QWERTY System Keyboard APK
 
 on:
   push:
@@ -19,13 +19,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate System Alphabetical Keyboard Project
+    - name: ⚙️ Auto-Generate PC Style Keyboard Project
       run: |
         echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/xml/
         mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/java/com/custom/keyboard/
+        mkdir -p app/src/main/java/com/custom/pckeyboard/
 
         # 1. Generate XML Layout for the Keyboard Viewer Component
         cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
@@ -38,61 +38,56 @@ jobs:
             android:layout_alignParentBottom="true"
             android:keyBackground="@android:drawable/btn_default"
             android:keyTextColor="#FFFFFF"
-            android:background="#1A1A1A"
-            android:padding="4dp"/>
+            android:background="#151515"
+            android:padding="2dp"/>
         EOF
 
-        # 2. Create the Alphabetical (A-Z) Key Matrix Structure
-        cat << 'EOF' > app/src/main/res/xml/alphabet_layout.xml
+        # 2. Create the PC Style QWERTY + Numbers + Ctrl + Shift Matrix
+        cat << 'EOF' > app/src/main/res/xml/qwerty_pc_layout.xml
         <?xml version="1.0" encoding="utf-8"?>
         <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
-            android:keyWidth="14%p"
-            android:keyHeight="55dp"
-            android:horizontalGap="1%p"
-            android:verticalGap="6dp">
+            android:keyWidth="10%p"
+            android:keyHeight="50dp"
+            android:horizontalGap="0px"
+            android:verticalGap="0px">
 
             <Row>
-                <Key android:codes="97" android:keyLabel="a" />
-                <Key android:codes="98" android:keyLabel="b" />
-                <Key android:codes="99" android:keyLabel="c" />
-                <Key android:codes="100" android:keyLabel="d" />
-                <Key android:codes="101" android:keyLabel="e" />
-                <Key android:codes="102" android:keyLabel="f" />
-                <Key android:codes="103" android:keyLabel="g" />
+                <Key android:codes="49" android:keyLabel="1" /><Key android:codes="50" android:keyLabel="2" />
+                <Key android:codes="51" android:keyLabel="3" /><Key android:codes="52" android:keyLabel="4" />
+                <Key android:codes="53" android:keyLabel="5" /><Key android:codes="54" android:keyLabel="6" />
+                <Key android:codes="55" android:keyLabel="7" /><Key android:codes="56" android:keyLabel="8" />
+                <Key android:codes="57" android:keyLabel="9" /><Key android:codes="48" android:keyLabel="0" />
             </Row>
 
             <Row>
-                <Key android:codes="104" android:keyLabel="h" />
-                <Key android:codes="105" android:keyLabel="i" />
-                <Key android:codes="106" android:keyLabel="j" />
-                <Key android:codes="107" android:keyLabel="k" />
-                <Key android:codes="108" android:keyLabel="l" />
+                <Key android:codes="113" android:keyLabel="q" /><Key android:codes="119" android:keyLabel="w" />
+                <Key android:codes="101" android:keyLabel="e" /><Key android:codes="114" android:keyLabel="r" />
+                <Key android:codes="116" android:keyLabel="t" /><Key android:codes="121" android:keyLabel="y" />
+                <Key android:codes="117" android:keyLabel="u" /><Key android:codes="105" android:keyLabel="i" />
+                <Key android:codes="111" android:keyLabel="o" /><Key android:codes="112" android:keyLabel="p" />
+            </Row>
+
+            <Row>
+                <Key android:codes="97" android:keyLabel="a" android:keyEdgeFlags="left" android:horizontalGap="5%p"/>
+                <Key android:codes="115" android:keyLabel="s" /><Key android:codes="100" android:keyLabel="d" />
+                <Key android:codes="102" android:keyLabel="f" /><Key android:codes="103" android:keyLabel="g" />
+                <Key android:codes="104" android:keyLabel="h" /><Key android:codes="106" android:keyLabel="j" />
+                <Key android:codes="107" android:keyLabel="k" /><Key android:codes="108" android:keyLabel="l" android:keyEdgeFlags="right"/>
+            </Row>
+
+            <Row>
+                <Key android:codes="-1" android:keyLabel="SHIFT" android:keyWidth="15%p" android:keyEdgeFlags="left"/>
+                <Key android:codes="122" android:keyLabel="z" /><Key android:codes="120" android:keyLabel="x" />
+                <Key android:codes="99" android:keyLabel="c" /><Key android:codes="118" android:keyLabel="v" />
+                <Key android:codes="98" android:keyLabel="b" /><Key android:codes="110" android:keyLabel="n" />
                 <Key android:codes="109" android:keyLabel="m" />
-                <Key android:codes="110" android:keyLabel="n" />
+                <Key android:codes="-5" android:keyLabel="DEL" android:keyWidth="15%p" android:keyEdgeFlags="right"/>
             </Row>
 
             <Row>
-                <Key android:codes="111" android:keyLabel="o" />
-                <Key android:codes="112" android:keyLabel="p" />
-                <Key android:codes="113" android:keyLabel="q" />
-                <Key android:codes="114" android:keyLabel="r" />
-                <Key android:codes="115" android:keyLabel="s" />
-                <Key android:codes="116" android:keyLabel="t" />
-                <Key android:codes="117" android:keyLabel="u" />
-            </Row>
-
-            <Row>
-                <Key android:codes="118" android:keyLabel="v" />
-                <Key android:codes="119" android:keyLabel="w" />
-                <Key android:codes="120" android:keyLabel="x" />
-                <Key android:codes="121" android:keyLabel="y" />
-                <Key android:codes="122" android:keyLabel="z" />
-                <Key android:codes="-5" android:keyLabel="DEL" android:keyWidth="29%p" />
-            </Row>
-
-            <Row>
-                <Key android:codes="32" android:keyLabel="SPACE" android:keyWidth="69%p" />
-                <Key android:codes="10" android:keyLabel="ENTER" android:keyWidth="29%p" />
+                <Key android:codes="-10" android:keyLabel="CTRL" android:keyWidth="20%p" android:keyEdgeFlags="left"/>
+                <Key android:codes="32" android:keyLabel="SPACE" android:keyWidth="60%p" />
+                <Key android:codes="10" android:keyLabel="ENTER" android:keyWidth="20%p" android:keyEdgeFlags="right"/>
             </Row>
         </Keyboard>
         EOF
@@ -102,13 +97,13 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <input-method xmlns:android="http://schemas.android.com/apk/res/android">
             <subtype
-                android:label="ABCDE Simple Layout"
+                android:label="PC QWERTY (Ctrl Shortcuts)"
                 android:imeSubtypeLocale="en_US"
                 android:imeSubtypeMode="keyboard" />
         </input-method>
         EOF
 
-        # 4. Main Settings Setup Activity UI (Instructions to enable keyboard)
+        # 4. Main Settings Setup Activity UI
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -122,36 +117,39 @@ jobs:
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔤 ABCDE Custom System Keyboard"
+                android:text="💻 PC QWERTY Keyboard"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="30dp"/>
+                android:layout_marginBottom="20dp"/>
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="How to Activate:\n\n1. Go to Phone Settings -> Languages &amp; Input.\n2. Click 'Manage Keyboards'.\n3. Turn on 'ABCDE Simple Keyboard'.\n4. Open any app (like WhatsApp) and select this keyboard!"
+                android:text="Turn this on in System Settings -> Languages &amp; Input -> Manage Keyboards.\n\n🔥 PRO TIP: Tap 'CTRL' (you will see a 'CTRL ON' popup), then tap 'C' to Copy, 'V' to Paste, 'A' to Select All, or 'X' to Cut!"
                 android:textColor="#BBBBBB"
                 android:textSize="15sp"
                 android:lineSpacingExtra="5dp"
-                android:layout_marginBottom="40dp"/>
+                android:layout_marginBottom="40dp"
+                android:gravity="center"/>
 
             <EditText
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Tap here to test your new keyboard..."
+                android:layout_height="200dp"
+                android:hint="Type here to test shortcuts...\nSelect me and press CTRL then C!"
                 android:textColorHint="#555555"
                 android:textColor="#FFFFFF"
-                android:backgroundTint="#00FFFF"/>
+                android:backgroundTint="#00FFFF"
+                android:gravity="top|start"
+                android:padding="10dp"/>
         </LinearLayout>
         EOF
 
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
         # 5. Core App Main Interface Entrypoint Class
-        cat << 'EOF' > app/src/main/java/com/custom/keyboard/MainActivity.java
-        package com.custom.keyboard;
+        cat << 'EOF' > app/src/main/java/com/custom/pckeyboard/MainActivity.java
+        package com.custom.pckeyboard;
         import android.os.Bundle;
         import androidx.appcompat.app.AppCompatActivity;
 
@@ -164,9 +162,9 @@ jobs:
         }
         EOF
 
-        # 6. [FIXED] Core Background Engine Service
-        cat << 'EOF' > app/src/main/java/com/custom/keyboard/SimpleABCKeyboard.java
-        package com.custom.keyboard;
+        # 6. Core Background Engine Service handling Hardware Keystrokes (CTRL & SHIFT Simulation)
+        cat << 'EOF' > app/src/main/java/com/custom/pckeyboard/PCKeyboardService.java
+        package com.custom.pckeyboard;
 
         import android.inputmethodservice.InputMethodService;
         import android.inputmethodservice.Keyboard;
@@ -174,15 +172,18 @@ jobs:
         import android.view.KeyEvent;
         import android.view.View;
         import android.view.inputmethod.InputConnection;
+        import android.widget.Toast;
 
-        public class SimpleABCKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
+        public class PCKeyboardService extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
             private KeyboardView kv;
             private Keyboard keyboard;
+            private boolean isCtrlActive = false;
+            private boolean isShiftActive = false;
 
             @Override
             public View onCreateInputView() {
                 kv = (KeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
-                keyboard = new Keyboard(this, R.xml.alphabet_layout);
+                keyboard = new Keyboard(this, R.xml.qwerty_pc_layout);
                 kv.setKeyboard(keyboard);
                 kv.setOnKeyboardActionListener(this);
                 return kv;
@@ -193,18 +194,74 @@ jobs:
                 InputConnection ic = getCurrentInputConnection();
                 if (ic == null) return;
 
-                switch (primaryCode) {
-                    case Keyboard.KEYCODE_DELETE:
-                        ic.deleteSurroundingText(1, 0);
-                        break;
-                    case 10: // Enter Key
-                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
-                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
-                        break;
-                    default:
-                        char code = (char) primaryCode;
-                        ic.commitText(String.valueOf(code), 1);
+                // 1. Handle Modifier Keys: CTRL (-10) & SHIFT (-1)
+                if (primaryCode == -10) { 
+                    isCtrlActive = !isCtrlActive;
+                    Toast.makeText(this, "🛡️ CTRL " + (isCtrlActive ? "ON" : "OFF"), Toast.LENGTH_SHORT).show();
+                    return;
+                } else if (primaryCode == Keyboard.KEYCODE_SHIFT) {
+                    isShiftActive = !isShiftActive;
+                    keyboard.setShifted(isShiftActive);
+                    kv.invalidateAllKeys();
+                    return;
                 }
+
+                // 2. Handle Action Keys: Backspace & Enter
+                if (primaryCode == Keyboard.KEYCODE_DELETE) {
+                    ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
+                    ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
+                    return;
+                } else if (primaryCode == 10) { 
+                    ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                    ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                    return;
+                }
+
+                // 3. Handle Normal Characters & Hardware Keyboard Shortcuts
+                char code = (char) primaryCode;
+
+                if (isCtrlActive) {
+                    // System hardware simulation mapping for shortcuts
+                    int androidKeyCode = getAndroidKeyCode(Character.toLowerCase(code));
+                    if (androidKeyCode != 0) {
+                        long now = System.currentTimeMillis();
+                        
+                        // Creates a hardware-level event with the CTRL Meta flag attached!
+                        KeyEvent downEvent = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, androidKeyCode, 0, KeyEvent.META_CTRL_ON);
+                        KeyEvent upEvent = new KeyEvent(now, now, KeyEvent.ACTION_UP, androidKeyCode, 0, KeyEvent.META_CTRL_ON);
+                        
+                        ic.sendKeyEvent(downEvent);
+                        ic.sendKeyEvent(upEvent);
+                        
+                        // Automatically turn off CTRL after 1 shortcut use for mobile typing speed
+                        isCtrlActive = false;
+                        Toast.makeText(this, "⚡ Shortcut Used! (CTRL OFF)", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // Fallback if not an alphabet
+                        ic.commitText(String.valueOf(code), 1);
+                    }
+                } else {
+                    // Normal Typing Mode (Handles Shift Capitalization)
+                    if (isShiftActive && Character.isLowerCase(code)) {
+                        code = Character.toUpperCase(code);
+                    }
+                    ic.commitText(String.valueOf(code), 1);
+                    
+                    // Reset Shift after typing 1 uppercase letter automatically
+                    if (isShiftActive) {
+                        isShiftActive = false;
+                        keyboard.setShifted(false);
+                        kv.invalidateAllKeys();
+                    }
+                }
+            }
+
+            // Maps standard char values to native Android Keyboard Hardware Codes
+            private int getAndroidKeyCode(char c) {
+                if (c >= 'a' && c <= 'z') {
+                    return KeyEvent.KEYCODE_A + (c - 'a');
+                }
+                return 0; 
             }
 
             @Override public void onPress(int primaryCode) {}
@@ -220,16 +277,16 @@ jobs:
         # 7. Package Android Manifest declaring Input Method System Rules
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <application android:label="ABCDE Simple Keyboard" android:theme="@style/Theme.App">
+            <application android:label="PC QWERTY Keyboard" android:theme="@style/Theme.App">
                 
-                <activity android:name="com.custom.keyboard.MainActivity" android:exported="true">
+                <activity android:name="com.custom.pckeyboard.MainActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
 
-                <service android:name="com.custom.keyboard.SimpleABCKeyboard"
+                <service android:name="com.custom.pckeyboard.PCKeyboardService"
                     android:permission="android.permission.BIND_INPUT_METHOD"
                     android:exported="true">
                     <intent-filter>
@@ -260,10 +317,10 @@ jobs:
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
         android {
-            namespace "com.custom.keyboard"
+            namespace "com.custom.pckeyboard"
             compileSdk 34
             defaultConfig {
-                applicationId "com.custom.keyboard"
+                applicationId "com.custom.pckeyboard"
                 minSdk 21
                 targetSdk 34
                 versionCode 1
@@ -287,5 +344,5 @@ jobs:
     - name: 📥 Deliver Keyboard APK Package
       uses: actions/upload-artifact@v4
       with:
-        name: Alphabetical-System-Keyboard-App
+        name: PC-Style-QWERTY-Keyboard-App
         path: app/build/outputs/apk/debug/app-debug.apk
