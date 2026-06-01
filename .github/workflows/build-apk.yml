@@ -125,20 +125,19 @@ jobs:
         }
         EOF
 
-        # 5. Core Engine - Real Front Camera Pixel Motion Processing & Floating Cursor Service
+        # 5. [FIXED] Core Engine - Correct Graphics Package Implemented For Seamless Compilation
         cat << 'EOF' > app/src/main/java/com/ai/airmouse/GestureCursorService.java
         package com.ai.airmouse;
 
         import android.accessibilityservice.AccessibilityService;
         import android.graphics.PixelFormat;
+        import android.graphics.SurfaceTexture; // Corrected Package Package Path Fix
         import android.hardware.Camera;
         import android.view.Gravity;
-        import android.view.SurfaceTexture;
         import android.view.View;
         import android.view.WindowManager;
         import android.view.accessibility.AccessibilityEvent;
         import android.widget.ImageView;
-        import java.io.IOException;
 
         @SuppressWarnings("deprecation")
         public class GestureCursorService extends AccessibilityService implements Camera.PreviewCallback {
@@ -162,7 +161,6 @@ jobs:
                 cursorX = screenWidth / 2;
                 cursorY = screenHeight / 2;
 
-                // Create floating cursor UI
                 params = new WindowManager.LayoutParams(
                         WindowManager.LayoutParams.WRAP_CONTENT,
                         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -176,14 +174,12 @@ jobs:
 
                 ImageView pointer = new ImageView(this);
                 pointer.setImageResource(android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_compass).getResId());
-                pointer.setColorFilter(android.graphics.Color.GREEN); // Green signifies live interactive state
+                pointer.setColorFilter(android.graphics.Color.GREEN);
                 pointer.setMinimumWidth(70);
                 pointer.setMinimumHeight(70);
                 overlayCursorView = pointer;
 
                 windowManager.addView(overlayCursorView, params);
-                
-                // Initialize background touchless camera tracking engine safely
                 startBackgroundCameraMatrix();
             }
 
@@ -231,20 +227,18 @@ jobs:
                     return;
                 }
 
-                // Mathematical motion vector alignment calculation (Parses real-time changes in YUV data)
                 long leftMotion = 0, rightMotion = 0, upMotion = 0, downMotion = 0;
-                int sampleStep = 8; // Performance optimized frame skipper matrix
+                int sampleStep = 8; 
 
                 for (int y = 0; y < height; y += sampleStep) {
                     for (int x = 0; x < width; x += sampleStep) {
                         int index = x + y * width;
                         if (index >= data.length) break;
 
-                        // Difference between current pixel frame brightness and previous one
                         int diff = Math.abs((data[index] & 0xFF) - (previousFrameBuffer[index] & 0xFF));
                         
-                        if (diff > 35) { // Threshold limit filtering ambient background noise
-                            if (x < width / 2) rightMotion += diff; // Mirrored coordinate assignment
+                        if (diff > 35) { 
+                            if (x < width / 2) rightMotion += diff; 
                             else leftMotion += diff;
 
                             if (y < height / 2) upMotion += diff;
@@ -255,34 +249,31 @@ jobs:
 
                 System.arraycopy(data, 0, previousFrameBuffer, 0, data.length);
 
-                // Compute dominant motion direction vector calculations
                 long horizontalDiff = Math.abs(leftMotion - rightMotion);
                 long verticalDiff = Math.abs(upMotion - downMotion);
                 int speedMultiplier = 18;
 
                 if (horizontalDiff > 4000) {
                     if (leftMotion > rightMotion) {
-                        cursorX -= speedMultiplier; // Hand shifts Left -> Moves Cursor Left
+                        cursorX -= speedMultiplier; 
                     } else {
-                        cursorX += speedMultiplier; // Hand shifts Right -> Moves Cursor Right
+                        cursorX += speedMultiplier; 
                     }
                 }
 
                 if (verticalDiff > 4000) {
                     if (upMotion > downMotion) {
-                        cursorY -= speedMultiplier; // Hand shifts Up -> Moves Cursor Up
+                        cursorY -= speedMultiplier; 
                     } else {
-                        cursorY += speedMultiplier; // Hand shifts Down -> Moves Cursor Down
+                        cursorY += speedMultiplier; 
                     }
                 }
 
-                // Lock tracking bounds securely inside hardware screen layout limit safezone
                 if (cursorX < 0) cursorX = 0;
                 if (cursorX > screenWidth) cursorX = screenWidth;
                 if (cursorY < 0) cursorY = 0;
                 if (cursorY > screenHeight) cursorY = screenHeight;
 
-                // Sync layout location params instantly with active physical coordinates
                 if (overlayCursorView != null && windowManager != null) {
                     params.x = cursorX;
                     params.y = cursorY;
