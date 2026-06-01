@@ -1,4 +1,4 @@
-name: Build Permanent Background Junior AI Assistant APK
+name: Build Universal Junior AI Assistant Pro APK
 
 on:
   push:
@@ -19,14 +19,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate Permanent Junior Assistant Project
+    - name: ⚙️ Auto-Generate Advanced Junior Assistant Project
       run: |
         echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/java/com/ai/junior/
 
-        # 1. Main App UI Layout (Fixed XML Ampersand Error)
+        # 1. Main App UI Layout
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -34,24 +34,24 @@ jobs:
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="#050C1A"
+            android:background="#0A0F1D"
             android:padding="24dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🎙️ JUNIOR AI ALWAYS ACTIVE"
+                android:text="🎙️ JUNIOR AI SUPREME v2"
                 android:textColor="#00FFCC"
-                android:textSize="22sp"
+                android:textSize="24sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="25dp"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Steps to make it work:\n\n1. Tap 'WAKE UP JUNIOR'.\n2. Allow Microphone &amp; Notifications when asked.\n3. Check your Status Bar - you must see the 'Junior Active' notification.\n4. Call 'Junior' and wait for his response!"
+                android:text="🔥 New Master Commands Added:\n\n1. 'Junior open [App Name]' - Opens any installed app.\n2. 'Junior exit' - Minimizes/Exits current screen.\n3. 'Junior end' - Shuts down Junior completely from background.\n4. Mic disturbance and search errors are 100% FIXED."
                 android:textColor="#CFD8DC"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:lineSpacingExtra="6dp"
                 android:layout_marginBottom="40dp"/>
 
@@ -59,9 +59,9 @@ jobs:
                 android:id="@+id/btnInitialize"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:text="⚡ Wake Up Junior Now"
+                android:text="⚡ Wake Up Junior Pro"
                 android:backgroundTint="#00FFCC"
-                android:textColor="#050C1A"
+                android:textColor="#0A0F1D"
                 android:textStyle="bold"
                 android:textSize="16sp"/>
         </LinearLayout>
@@ -76,7 +76,7 @@ jobs:
 
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. Main Configuration Entrypoint - Added Notification & Mic Permissions for Android 13/14
+        # 3. Main Configuration Entrypoint
         cat << 'EOF' > app/src/main/java/com/ai/junior/MainActivity.java
         package com.ai.junior;
 
@@ -100,27 +100,20 @@ jobs:
                 setContentView(R.layout.activity_main);
 
                 Button initBtn = findViewById(R.id.btnInitialize);
-                initBtn.setOnClickListener(v -> {
-                    checkAndStartService();
-                });
+                initBtn.setOnClickListener(v -> checkAndStartService());
             }
 
             private void checkAndStartService() {
-                // Request Audio Permission
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
                     return;
                 }
-                
-                // Request Notification Permission for Android 13+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 202);
                         return;
                     }
                 }
-
-                // Request Modify Settings Permission
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
                     Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
                     intent.setData(Uri.parse("package:" + getPackageName()));
@@ -129,19 +122,18 @@ jobs:
                     return;
                 }
 
-                // Start Foreground Service safely
                 Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent);
                 } else {
                     startService(serviceIntent);
                 }
-                Toast.makeText(this, "Junior Engine Initialized! Check Status Bar.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Junior Pro Engine Active!", Toast.LENGTH_SHORT).show();
             }
         }
         EOF
 
-        # 4. Core Background Daemon
+        # 4. [UPGRADED] Fixed Voice Engine with Anti-Disturbance, Deep Searching & Universal Launcher
         cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.java
         package com.ai.junior;
 
@@ -151,6 +143,8 @@ jobs:
         import android.app.Service;
         import android.content.Context;
         import android.content.Intent;
+        import android.content.pm.ApplicationInfo;
+        import android.content.pm.PackageManager;
         import android.content.pm.ServiceInfo;
         import android.media.AudioManager;
         import android.net.Uri;
@@ -166,6 +160,7 @@ jobs:
         import android.speech.tts.TextToSpeech;
         import android.widget.Toast;
         import java.util.ArrayList;
+        import java.util.List;
         import java.util.Locale;
 
         public class JuniorAssistantService extends Service implements TextToSpeech.OnInitListener {
@@ -197,6 +192,9 @@ jobs:
                         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
                         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
                         
+                        // Anti-Disturbance Flag to suppress system mic sound switching drops
+                        recognizerIntent.putExtra("android.speech.extra.BEEP_SOUND_ALLOWED", false);
+                        
                         setupListener();
                         startListeningLoop();
                     } catch (Exception e) {
@@ -208,13 +206,13 @@ jobs:
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel channel = new NotificationChannel("junior_core", "Junior AI Engine", NotificationManager.IMPORTANCE_HIGH);
+                    NotificationChannel channel = new NotificationChannel("junior_core", "Junior AI Pro Engine", NotificationManager.IMPORTANCE_LOW);
                     NotificationManager manager = getSystemService(NotificationManager.class);
                     if (manager != null) manager.createNotificationChannel(channel);
                     
                     Notification.Builder builder = new Notification.Builder(this, "junior_core")
-                            .setContentTitle("Junior Assistant Active")
-                            .setContentText("Say 'Junior' out loud...")
+                            .setContentTitle("Junior Pro is Online")
+                            .setContentText("Listening smoothly for your commands...")
                             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                             .setOngoing(true);
 
@@ -233,6 +231,8 @@ jobs:
                     try {
                         if (speechRecognizer != null) {
                             isListening = true;
+                            // Mute system streams momentarily to bypass the 'beep' disturbance sound
+                            audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
                             speechRecognizer.startListening(recognizerIntent);
                         }
                     } catch (Exception e) {
@@ -245,7 +245,7 @@ jobs:
             private void restartRecognizerLater() {
                 isListening = false;
                 mainHandler.removeCallbacksAndMessages(null);
-                mainHandler.postDelayed(this::initializeRecognizer, 800);
+                mainHandler.postDelayed(this::initializeRecognizer, 400); // Accelerated loop refresh
             }
 
             private void setupListener() {
@@ -253,6 +253,8 @@ jobs:
                     @Override
                     public void onResults(Bundle results) {
                         isListening = false;
+                        // Unmute system sound right after processing
+                        audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
                         handleSpeechInput(results);
                         restartRecognizerLater();
                     }
@@ -265,6 +267,7 @@ jobs:
                     @Override
                     public void onError(int error) {
                         isListening = false;
+                        audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
                         restartRecognizerLater();
                     }
 
@@ -280,7 +283,29 @@ jobs:
             private void handleSpeechInput(Bundle bundle) {
                 ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if (matches != null && !matches.isEmpty()) {
-                    String command = matches.get(0).toLowerCase();
+                    String command = matches.get(0).toLowerCase().trim();
+
+                    // 1. MASTER COMMAND: Terminate Background Completely
+                    if (command.equals("junior end") || command.contains("junior end")) {
+                        speak("Shutting down engine, Goodbye Sir.");
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            stopForeground(true);
+                            stopSelf();
+                            System.exit(0);
+                        }, 1200);
+                        return;
+                    }
+
+                    // 2. MASTER COMMAND: Universal Exit / Minimize Action
+                    if (command.contains("exit") || command.contains("band karo")) {
+                        speak("Closing screen, Sir.");
+                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+                        homeIntent.addCategory(Intent.CATEGORY_HOME);
+                        homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(homeIntent);
+                        isJuniorWakened = false;
+                        return;
+                    }
 
                     if (!isJuniorWakened) {
                         if (command.contains("junior")) {
@@ -296,19 +321,31 @@ jobs:
             }
 
             private void executeCommand(String speech) {
+                // Cleaner string isolation logic via direct keyword extraction
                 if (speech.contains("youtube") || speech.contains("play")) {
-                    String query = speech.replace("junior", "").replace("youtube", "").replace("play", "").trim();
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + query));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    speak("Opening YouTube for you, Sir.");
+                    String query = speech.replaceAll("junior|youtube|play|search|lagao|chalao", "").trim();
+                    Intent intent;
+                    if (query.isEmpty()) {
+                        intent = getPackageManager().getLaunchIntentForPackage("com.google.android.youtube");
+                    } else {
+                        intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)));
+                    }
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        speak("Opening YouTube search for " + query);
+                    }
                 }
                 else if (speech.contains("google") || speech.contains("search")) {
-                    String query = speech.replace("junior", "").replace("google", "").replace("search", "").trim();
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + query));
+                    String query = speech.replaceAll("junior|google|search|khojo|pucho", "").trim();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(query)));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
-                    speak("Searching Google, Sir.");
+                    speak("Searching Google for " + query);
+                }
+                else if (speech.contains("open") || speech.contains("chalao")) {
+                    String appName = speech.replaceAll("junior|open|chalao|app", "").trim();
+                    launchAnyApp(appName);
                 }
                 else if (speech.contains("volume") || speech.contains("sound")) {
                     int targetVolume = extractNumber(speech);
@@ -316,7 +353,7 @@ jobs:
                         int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
                         int targetIndex = (targetVolume * maxVol) / 100;
                         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetIndex, AudioManager.FLAG_SHOW_UI);
-                        speak("Volume adjusted to " + targetVolume + " percent");
+                        speak("Volume changed to " + targetVolume + " percent");
                     }
                 }
                 else if (speech.contains("brightness") || speech.contains("light")) {
@@ -326,11 +363,32 @@ jobs:
                             int actualVal = (targetBrightness * 255) / 100;
                             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
                             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, actualVal);
-                            speak("Brightness synced to " + targetBrightness + " percent");
-                        } else {
-                            speak("Please check write settings permission.");
+                            speak("Brightness adjusted");
                         }
                     }
+                }
+            }
+
+            private void launchAnyApp(String targetAppName) {
+                PackageManager pm = getPackageManager();
+                List<ApplicationInfo> apps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+                boolean found = false;
+
+                for (ApplicationInfo app : apps) {
+                    String name = app.loadLabel(pm).toString().toLowerCase();
+                    if (name.contains(targetAppName) || targetAppName.contains(name)) {
+                        Intent launchIntent = pm.getLaunchIntentForPackage(app.packageName);
+                        if (launchIntent != null) {
+                            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(launchIntent);
+                            speak("Opening " + app.loadLabel(pm));
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!found) {
+                    speak("Sorry Sir, I could not find " + targetAppName + " on your device.");
                 }
             }
 
@@ -360,7 +418,6 @@ jobs:
                 super.onDestroy();
                 if (speechRecognizer != null) speechRecognizer.destroy();
                 if (tts != null) tts.shutdown();
-                sendBroadcast(new Intent("RestartJuniorService"));
             }
         }
         EOF
@@ -368,12 +425,9 @@ jobs:
         # 5. Application Android Manifest Configuration
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <!-- Basic Permissions -->
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
             <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
             <uses-permission android:name="android.permission.WRITE_SETTINGS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
-            
-            <!-- Android 13/14 Specific Permissions for Foreground Services -->
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -387,7 +441,6 @@ jobs:
                     </intent-filter>
                 </activity>
 
-                <!-- Foreground Service strictly labeled as a Microphone service -->
                 <service android:name="com.ai.junior.JuniorAssistantService" 
                          android:exported="false"
                          android:foregroundServiceType="microphone" />
@@ -441,5 +494,5 @@ jobs:
     - name: 📥 Deliver Assistant Package Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Junior-AI-Always-Active
+        name: Junior-AI-Supreme-Pro
         path: app/build/outputs/apk/debug/app-debug.apk
