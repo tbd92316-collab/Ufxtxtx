@@ -26,7 +26,7 @@ jobs:
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/java/com/ai/junior/
 
-        # 1. Main App UI Layout
+        # 1. Main App UI Layout (Fixed XML Ampersand Error)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -49,7 +49,7 @@ jobs:
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Steps to make it work:\n\n1. Tap 'WAKE UP JUNIOR'.\n2. Allow Microphone & Notifications when asked.\n3. Check your Status Bar - you must see the 'Junior Active' notification.\n4. Call 'Junior' and wait for his response!"
+                android:text="Steps to make it work:\n\n1. Tap 'WAKE UP JUNIOR'.\n2. Allow Microphone &amp; Notifications when asked.\n3. Check your Status Bar - you must see the 'Junior Active' notification.\n4. Call 'Junior' and wait for his response!"
                 android:textColor="#CFD8DC"
                 android:textSize="15sp"
                 android:lineSpacingExtra="6dp"
@@ -76,7 +76,7 @@ jobs:
 
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 3. [FIXED] Main Configuration Entrypoint - Added Notification & Mic Permissions for Android 13/14
+        # 3. Main Configuration Entrypoint - Added Notification & Mic Permissions for Android 13/14
         cat << 'EOF' > app/src/main/java/com/ai/junior/MainActivity.java
         package com.ai.junior;
 
@@ -365,13 +365,15 @@ jobs:
         }
         EOF
 
-        # 5. [CRITICAL FIX] Application Android Manifest Configuration
+        # 5. Application Android Manifest Configuration
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <!-- Basic Permissions -->
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
             <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
             <uses-permission android:name="android.permission.WRITE_SETTINGS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
             
+            <!-- Android 13/14 Specific Permissions for Foreground Services -->
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -385,6 +387,7 @@ jobs:
                     </intent-filter>
                 </activity>
 
+                <!-- Foreground Service strictly labeled as a Microphone service -->
                 <service android:name="com.ai.junior.JuniorAssistantService" 
                          android:exported="false"
                          android:foregroundServiceType="microphone" />
