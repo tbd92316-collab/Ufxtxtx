@@ -26,7 +26,7 @@ jobs:
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/java/com/ai/junior/
 
-        # 1. Main App UI Layout (Status Indicator & Setup Guide)
+        # 1. Main App UI Layout
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -49,7 +49,7 @@ jobs:
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Activation Guide:\n\n1. Click the button below to grant Audio/Microphone permissions.\n2. Allow 'Modify System Settings' if requested.\n3. Junior will now run in the background.\n4. Just say 'Junior' loudly, it will reply 'Yes Sir!' and wait for your next command!"
+                android:text="Activation Guide:\n\n1. Grant Audio and Write Settings permissions.\n2. Click 'Wake Up Junior' to start the permanent background listener.\n3. Make sure to remove the app from Battery Optimization in phone settings so Android doesn't kill Junior!"
                 android:textColor="#B0BEC5"
                 android:textSize="15sp"
                 android:lineSpacingExtra="6dp"
@@ -101,17 +101,14 @@ jobs:
 
                 Button initBtn = findViewById(R.id.btnInitialize);
                 initBtn.setOnClickListener(v -> {
-                    // Check Microphone/Audio Recording Permissions
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
                     } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
-                        // Request Permission to modify Brightness settings safely
                         Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
                         intent.setData(Uri.parse("package:" + getPackageName()));
                         startActivity(intent);
                         Toast.makeText(this, "Allow Write Settings for Brightness Control", Toast.LENGTH_LONG).show();
                     } else {
-                        // Start Core Background Assistant Service Engine
                         Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(serviceIntent);
@@ -125,7 +122,7 @@ jobs:
         }
         EOF
 
-        # 4. Core Assistant Background Processor & Voice Action Dispatcher
+        # 4. [FIXED] Core Assistant Background Processor with Auto-Restart Loop Architecture
         cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.java
         package com.ai.junior;
 
@@ -139,7 +136,9 @@ jobs:
         import android.net.Uri;
         import android.os.Build;
         import android.os.Bundle;
+        import android.os.Handler;
         import android.os.IBinder;
+        import android.os.Looper;
         import android.provider.Settings;
         import android.speech.RecognitionListener;
         import android.speech.RecognizerIntent;
@@ -155,84 +154,106 @@ jobs:
             private TextToSpeech tts;
             private AudioManager audioManager;
             private boolean isJuniorWakened = false;
+            private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
             @Override
             public void onCreate() {
                 super.onCreate();
                 audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
                 tts = new TextToSpeech(this, this);
+                initializeRecognizer();
+            }
 
-                // Setup Continuous Background Listener Engine
-                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-                recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-
-                setupListener();
+            private void initializeRecognizer() {
+                mainHandler.post(() -> {
+                    if (speechRecognizer != null) {
+                        speechRecognizer.destroy();
+                    }
+                    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(JuniorAssistantService.this);
+                    recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                    
+                    setupListener();
+                    startListeningLoop();
+                });
             }
 
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
-                // Keep Service Alive globally via standard Foreground Notification Channel
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel channel = new NotificationChannel("junior_channel", "Junior AI Active", NotificationManager.IMPORTANCE_LOW);
+                    NotificationChannel channel = new NotificationChannel("junior_channel", "Junior AI Engine", NotificationManager.IMPORTANCE_LOW);
                     getSystemService(NotificationManager.class).createNotificationChannel(channel);
                     Notification notification = new Notification.Builder(this, "junior_channel")
-                            .setContentTitle("Junior AI Assistant")
-                            .setContentText("Listening for 'Junior' trigger command...")
+                            .setContentTitle("Junior Assistant Active")
+                            .setContentText("Call 'Junior' anytime...")
                             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                             .build();
                     startForeground(1, notification);
                 }
-                
-                startListeningLoop();
                 return START_STICKY;
             }
 
             private void startListeningLoop() {
-                if (speechRecognizer != null) {
-                    speechRecognizer.startListening(recognizerIntent);
-                }
+                mainHandler.post(() -> {
+                    try {
+                        if (speechRecognizer != null) {
+                            speechRecognizer.startListening(recognizerIntent);
+                        }
+                    } catch (Exception e) {
+                        restartRecognizerLater();
+                    }
+                });
+            }
+
+            private void restartRecognizerLater() {
+                mainHandler.removeCallbacksAndMessages(null);
+                mainHandler.postDelayed(this::initializeRecognizer, 1000); // 1-second persistent backup loop
             }
 
             private void setupListener() {
                 speechRecognizer.setRecognitionListener(new RecognitionListener() {
                     @Override
-                    public void onResults(Bundle results) {
-                        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                        if (matches != null && !matches.isEmpty()) {
-                            String command = matches.get(0).toLowerCase();
-
-                            if (!isJuniorWakened) {
-                                // Checking for Wake Up Trigger Name
-                                if (command.contains("junior")) {
-                                    isJuniorWakened = true;
-                                    speak("Yes Sir!");
-                                    Toast.makeText(JuniorAssistantService.this, "Junior: Yes Sir!", Toast.LENGTH_SHORT).show();
-                                }
-                            } else {
-                                // Junior is already awake, execute system operations!
-                                executeCommand(command);
-                                isJuniorWakened = false; // Reset to listen for next execution
-                            }
-                        }
-                        startListeningLoop(); // Continue scanning background frequencies
-                    }
+                    public void onResults(Bundle results) { handleSpeechInput(results); }
 
                     @Override
-                    public void onError(int error) { startListeningLoop(); }
+                    public void onPartialResults(Bundle partialResults) { handleSpeechInput(partialResults); }
+
+                    @Override
+                    public void onError(int error) {
+                        // Crucial fix: Automatically wake up engine if it times out in the background
+                        restartRecognizerLater();
+                    }
+
                     @Override public void onReadyForSpeech(Bundle params) {}
                     @Override public void onBeginningOfSpeech() {}
                     @Override public void onRmsChanged(float rmsdB) {}
                     @Override public void onBufferReceived(byte[] buffer) {}
                     @Override public void onEndOfSpeech() {}
-                    @Override public void onPartialResults(Bundle partialResults) {}
                     @Override public void onEvent(int eventType, Bundle params) {}
                 });
             }
 
+            private void handleSpeechInput(Bundle bundle) {
+                ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (matches != null && !matches.isEmpty()) {
+                    String command = matches.get(0).toLowerCase();
+
+                    if (!isJuniorWakened) {
+                        if (command.contains("junior")) {
+                            isJuniorWakened = true;
+                            speak("Yes Sir!");
+                            Toast.makeText(JuniorAssistantService.this, "Junior: Yes Sir!", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        executeCommand(command);
+                        isJuniorWakened = false; 
+                    }
+                }
+            }
+
             private void executeCommand(String speech) {
-                // 1. YouTube Request Automation
                 if (speech.contains("youtube") || speech.contains("play")) {
                     String query = speech.replace("junior", "").replace("youtube", "").replace("play", "").trim();
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + query));
@@ -240,7 +261,6 @@ jobs:
                     startActivity(intent);
                     speak("Opening YouTube for " + query);
                 }
-                // 2. Google Search Automation
                 else if (speech.contains("google") || speech.contains("search")) {
                     String query = speech.replace("junior", "").replace("google", "").replace("search", "").trim();
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + query));
@@ -248,42 +268,33 @@ jobs:
                     startActivity(intent);
                     speak("Searching Google for " + query);
                 }
-                // 3. Audio Volume Configuration Management ("volume ko 30 kardo")
                 else if (speech.contains("volume") || speech.contains("sound")) {
                     int targetVolume = extractNumber(speech);
                     if (targetVolume >= 0) {
                         int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-                        int targetIndex = (targetVolume * maxVol) / 100; // Translate percentage to system index bounds
+                        int targetIndex = (targetVolume * maxVol) / 100;
                         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetIndex, AudioManager.FLAG_SHOW_UI);
-                        speak("Setting media volume to " + targetVolume + " percent");
+                        speak("Setting volume to " + targetVolume + " percent");
                     }
                 }
-                // 4. Screen Brightness Matrix Control ("brightness 50 percent kardo")
                 else if (speech.contains("brightness") || speech.contains("light")) {
                     int targetBrightness = extractNumber(speech);
                     if (targetBrightness >= 0) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.System.canWrite(this)) {
-                            int actualVal = (targetBrightness * 255) / 100; // System takes absolute integer up to 255
+                            int actualVal = (targetBrightness * 255) / 100;
                             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
                             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, actualVal);
-                            speak("Setting device screen brightness to " + targetBrightness + " percent");
+                            speak("Setting brightness to " + targetBrightness + " percent");
                         } else {
-                            speak("Please authorize write settings permission first.");
+                            speak("Please authorize write settings permission.");
                         }
                     }
-                } else {
-                    speak("I am on it, Sir.");
                 }
             }
 
             private int extractNumber(String text) {
-                // Regex scanner to instantly parse digit arrays inside user speech structures
                 String clean = text.replaceAll("[^0-9]", "");
-                try {
-                    return Integer.parseInt(clean);
-                } catch (Exception e) {
-                    return -1;
-                }
+                try { return Integer.parseInt(clean); } catch (Exception e) { return -1; }
             }
 
             private void speak(String text) {
@@ -294,24 +305,15 @@ jobs:
 
             @Override
             public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    tts.setLanguage(Locale.getDefault());
-                }
+                if (status == TextToSpeech.SUCCESS) { tts.setLanguage(Locale.getDefault()); }
             }
 
-            @Override
-            public IBinder onBind(Intent intent) { return null; }
+            @Override public IBinder onBind(Intent intent) { return null; }
 
             @Override
             public void onDestroy() {
                 super.onDestroy();
-                if (speechRecognizer != null) {
-                    speechRecognizer.destroy();
-                }
-                if (tts != null) {
-                    tts.stop();
-                    tts.shutdown();
-                }
+                restartRecognizerLater(); // Prevent system from permanently killing service
             }
         }
         EOF
