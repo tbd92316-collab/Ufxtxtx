@@ -1,4 +1,4 @@
-name: Build Universal Junior AI Assistant Pro APK
+name: Build FastChat Pro Messaging & Calling App
 
 on:
   push:
@@ -19,437 +19,397 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate Advanced Junior Assistant Project
+    - name: ⚙️ Setup Directory Structure
       run: |
-        echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/java/com/ai/junior/
+        mkdir -p app/src/main/res/drawable/
+        mkdir -p app/src/main/java/com/fastchat/pro/
 
-        # 1. Main App UI Layout
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+    - name: 🔑 Inject Firebase Configuration & Strings
+      run: |
+        # Strings and App Identity
+        cat << 'EOF' > app/src/main/res/values/strings.xml
+        <resources>
+            <string name="app_name">FastChat Pro</string>
+        </resources>
+        EOF
+
+        # Custom Colors for Dark Premium UI
+        cat << 'EOF' > app/src/main/res/values/colors.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <color name="bg_dark">#0B111E</color>
+            <color name="surface_dark">#161F30</color>
+            <color name="accent_green">#00FFCC</color>
+            <color name="text_white">#FFFFFF</color>
+            <color name="text_gray">#94A3B8</color>
+            <color name="link_blue">#2563EB</color>
+            <color name="call_red">#EF4444</color>
+        </resources>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/values/themes.xml
+        <resources>
+            <style name="Theme.FastChat" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+                <item name="colorPrimary">@color/accent_green</item>
+                <item name="android:windowBackground">@color/bg_dark</item>
+            </style>
+        </resources>
+        EOF
+
+        # Auto-Generating Firebase Configuration Class from your credentials
+        cat << 'EOF' > app/src/main/java/com/fastchat/pro/FirebaseConfig.java
+        package com.fastchat.pro;
+
+        public class FirebaseConfig {
+            public static final String API_KEY = "AIzaSyAOsGkBI2QDkZAuogCEWsX2Eu3Q2jJYeCE";
+            public static final String AUTH_DOMAIN = "movi-hub.firebaseapp.com";
+            public static final String DATABASE_URL = "https://movi-hub-default-rtdb.firebaseio.com";
+            public static final String PROJECT_ID = "movi-hub";
+            public static final String STORAGE_BUCKET = "movi-hub.firebasestorage.app";
+        }
+        EOF
+
+    - name: 🎨 Create Authentication UI Layouts (Login & Register)
+      run: |
+        # Login Layout
+        cat << 'EOF' > app/src/main/res/layout/activity_login.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="#0A0F1D"
+            android:background="@color/bg_dark"
             android:padding="24dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🎙️ JUNIOR AI SUPREME v2"
-                android:textColor="#00FFCC"
-                android:textSize="24sp"
+                android:text="💬 FastChat Pro"
+                android:textColor="@color/accent_green"
+                android:textSize="32sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="25dp"/>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🔥 New Master Commands Added:\n\n1. 'Junior open [App Name]' - Opens any installed app.\n2. 'Junior exit' - Minimizes/Exits current screen.\n3. 'Junior end' - Shuts down Junior completely from background.\n4. Mic disturbance and search errors are 100% FIXED."
-                android:textColor="#CFD8DC"
-                android:textSize="14sp"
-                android:lineSpacingExtra="6dp"
                 android:layout_marginBottom="40dp"/>
 
-            <Button
-                android:id="@+id/btnInitialize"
+            <EditText
+                android:id="@+id/etEmail"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:text="⚡ Wake Up Junior Pro"
-                android:backgroundTint="#00FFCC"
-                android:textColor="#0A0F1D"
-                android:textStyle="bold"
-                android:textSize="16sp"/>
+                android:layout_height="55dp"
+                android:hint="Email Address"
+                android:textColorHint="@color/text_gray"
+                android:textColor="@color/text_white"
+                android:background="@color/surface_dark"
+                android:padding="16dp"
+                android:inputType="textEmailAddress"
+                android:layout_marginBottom="16dp"/>
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:hint="Password"
+                android:textColorHint="@color/text_gray"
+                android:textColor="@color/text_white"
+                android:background="@color/surface_dark"
+                android:padding="16dp"
+                android:inputType="textPassword"
+                android:layout_marginBottom="24dp"/>
+
+            <Button
+                android:id="@+id/btnLogin"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:text="Login"
+                android:textColor="@color/bg_dark"
+                android:backgroundTint="@color/accent_green"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/tvGoToRegister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don't have an account? Register"
+                android:textColor="@color/text_gray"
+                android:layout_marginTop="20dp"
+                android:textSize="14sp"/>
         </LinearLayout>
         EOF
 
-        # 2. String Resources
-        cat << 'EOF' > app/src/main/res/values/strings.xml
-        <resources>
-            <string name="app_name">Junior AI Pro</string>
-        </resources>
+        # Register Layout
+        cat << 'EOF' > app/src/main/res/layout/activity_register.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@color/bg_dark"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Account"
+                android:textColor="@color/accent_green"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="30dp"/>
+
+            <EditText
+                android:id="@+id/etRegName"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:hint="Full Name"
+                android:textColorHint="@color/text_gray"
+                android:textColor="@color/text_white"
+                android:background="@color/surface_dark"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"/>
+
+            <EditText
+                android:id="@+id/etRegEmail"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:hint="Email Address"
+                android:textColorHint="@color/text_gray"
+                android:textColor="@color/text_white"
+                android:background="@color/surface_dark"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"/>
+
+            <EditText
+                android:id="@+id/etRegPassword"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:hint="Password"
+                android:textColorHint="@color/text_gray"
+                android:textColor="@color/text_white"
+                android:background="@color/surface_dark"
+                android:padding="16dp"
+                android:inputType="textPassword"
+                android:layout_marginBottom="24dp"/>
+
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:text="Sign Up"
+                android:textColor="@color/bg_dark"
+                android:backgroundTint="@color/accent_green"
+                android:textStyle="bold"/>
+        </LinearLayout>
         EOF
 
-        echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
+    - name: 📱 Create Dashboard & Fullscreen Incoming Call UI
+      run: |
+        # Dashboard UI (User List + Bottom Right Profile Placement)
+        cat << 'EOF' > app/src/main/res/layout/activity_dashboard.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_dark">
 
-        # 3. Main Configuration Entrypoint
-        cat << 'EOF' > app/src/main/java/com/ai/junior/MainActivity.java
-        package com.ai.junior;
+            <TextView
+                android:id="@+id/tvHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Active Chats"
+                android:textColor="@color/text_white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_margin="20dp"/>
 
-        import android.Manifest;
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvUserList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/tvHeader"
+                android:layout_above="@id/bottomBar"
+                android:padding="10dp"/>
+
+            <!-- Profile Modification Trigger Floating Action Button (Bottom Right) -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:layout_margin="24dp"
+                android:src="@android:drawable/ic_menu_edit"
+                android:backgroundTint="@color/accent_green"
+                android:contentDescription="Edit Profile"/>
+        </RelativeLayout>
+        EOF
+
+        # Full-Screen Overriding Incoming Video Call Manager
+        cat << 'EOF' > app/src/main/res/layout/activity_incoming_call.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0A0F1D"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvCallerName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Incoming Video Call..."
+                android:textColor="@color/text_white"
+                android:textSize="24sp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="100dp"
+                android:textStyle="bold"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="80dp"
+                android:padding="20dp">
+
+                <Button
+                    android:id="@+id/btnDeclineCall"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:text="Decline"
+                    android:layout_marginRight="10dp"
+                    android:backgroundTint="@color/call_red"
+                    android:textColor="@color/text_white"/>
+
+                <Button
+                    android:id="@+id/btnAnswerCall"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:text="Answer"
+                    android:layout_marginLeft="10dp"
+                    android:backgroundTint="@color/accent_green"
+                    android:textColor="@color/bg_dark"/>
+            </LinearLayout>
+        </RelativeLayout>
+        EOF
+
+    - name: 📝 Build Java Source Modules (Auth Controllers)
+      run: |
+        cat << 'EOF' > app/src/main/java/com/fastchat/pro/LoginActivity.java
+        package com.fastchat.pro;
+
         import android.content.Intent;
-        import android.content.pm.PackageManager;
-        import android.net.Uri;
-        import android.os.Build;
         import android.os.Bundle;
-        import android.provider.Settings;
         import android.widget.Button;
+        import android.widget.EditText;
+        import android.widget.TextView;
         import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
-        import androidx.core.app.ActivityCompat;
-        import androidx.core.content.ContextCompat;
 
-        public class MainActivity extends AppCompatActivity {
+        public class LoginActivity extends AppCompatActivity {
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_main);
+                setContentView(R.layout.activity_login);
 
-                Button initBtn = findViewById(R.id.btnInitialize);
-                initBtn.setOnClickListener(v -> checkAndStartService());
-            }
+                EditText etEmail = findViewById(R.id.etEmail);
+                EditText etPassword = findViewById(R.id.etPassword);
+                Button btnLogin = findViewById(R.id.btnLogin);
+                TextView tvRegister = findViewById(R.id.tvGoToRegister);
 
-            private void checkAndStartService() {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
-                    return;
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 202);
-                        return;
-                    }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    startActivity(intent);
-                    Toast.makeText(this, "Allow Modify System Settings", Toast.LENGTH_LONG).show();
-                    return;
-                }
+                tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
 
-                Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(serviceIntent);
-                } else {
-                    startService(serviceIntent);
-                }
-                Toast.makeText(this, "Junior Pro Engine Active!", Toast.LENGTH_SHORT).show();
-            }
-        }
-        EOF
-
-        # 4. [UPGRADED] Fixed Voice Engine with Anti-Disturbance, Deep Searching & Universal Launcher
-        cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.java
-        package com.ai.junior;
-
-        import android.app.Notification;
-        import android.app.NotificationChannel;
-        import android.app.NotificationManager;
-        import android.app.Service;
-        import android.content.Context;
-        import android.content.Intent;
-        import android.content.pm.ApplicationInfo;
-        import android.content.pm.PackageManager;
-        import android.content.pm.ServiceInfo;
-        import android.media.AudioManager;
-        import android.net.Uri;
-        import android.os.Build;
-        import android.os.Bundle;
-        import android.os.Handler;
-        import android.os.IBinder;
-        import android.os.Looper;
-        import android.provider.Settings;
-        import android.speech.RecognitionListener;
-        import android.speech.RecognizerIntent;
-        import android.speech.SpeechRecognizer;
-        import android.speech.tts.TextToSpeech;
-        import android.widget.Toast;
-        import java.util.ArrayList;
-        import java.util.List;
-        import java.util.Locale;
-
-        public class JuniorAssistantService extends Service implements TextToSpeech.OnInitListener {
-            private SpeechRecognizer speechRecognizer;
-            private Intent recognizerIntent;
-            private TextToSpeech tts;
-            private AudioManager audioManager;
-            private boolean isJuniorWakened = false;
-            private boolean isListening = false;
-            private final Handler mainHandler = new Handler(Looper.getMainLooper());
-
-            @Override
-            public void onCreate() {
-                super.onCreate();
-                audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-                tts = new TextToSpeech(this, this, "com.google.android.tts");
-                initializeRecognizer();
-            }
-
-            private void initializeRecognizer() {
-                mainHandler.post(() -> {
-                    try {
-                        if (speechRecognizer != null) {
-                            speechRecognizer.destroy();
-                        }
-                        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
-                        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-                        recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-                        
-                        // Anti-Disturbance Flag to suppress system mic sound switching drops
-                        recognizerIntent.putExtra("android.speech.extra.BEEP_SOUND_ALLOWED", false);
-                        
-                        setupListener();
-                        startListeningLoop();
-                    } catch (Exception e) {
-                        restartRecognizerLater();
-                    }
-                });
-            }
-
-            @Override
-            public int onStartCommand(Intent intent, int flags, int startId) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel channel = new NotificationChannel("junior_core", "Junior AI Pro Engine", NotificationManager.IMPORTANCE_LOW);
-                    NotificationManager manager = getSystemService(NotificationManager.class);
-                    if (manager != null) manager.createNotificationChannel(channel);
-                    
-                    Notification.Builder builder = new Notification.Builder(this, "junior_core")
-                            .setContentTitle("Junior Pro is Online")
-                            .setContentText("Listening smoothly for your commands...")
-                            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                            .setOngoing(true);
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(105, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
-                    } else {
-                        startForeground(105, builder.build());
-                    }
-                }
-                return START_STICKY;
-            }
-
-            private void startListeningLoop() {
-                if (isListening) return;
-                mainHandler.post(() -> {
-                    try {
-                        if (speechRecognizer != null) {
-                            isListening = true;
-                            // Mute system streams momentarily to bypass the 'beep' disturbance sound
-                            audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-                            speechRecognizer.startListening(recognizerIntent);
-                        }
-                    } catch (Exception e) {
-                        isListening = false;
-                        restartRecognizerLater();
-                    }
-                });
-            }
-
-            private void restartRecognizerLater() {
-                isListening = false;
-                mainHandler.removeCallbacksAndMessages(null);
-                mainHandler.postDelayed(this::initializeRecognizer, 400); // Accelerated loop refresh
-            }
-
-            private void setupListener() {
-                speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                    @Override
-                    public void onResults(Bundle results) {
-                        isListening = false;
-                        // Unmute system sound right after processing
-                        audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
-                        handleSpeechInput(results);
-                        restartRecognizerLater();
-                    }
-
-                    @Override
-                    public void onPartialResults(Bundle partialResults) {
-                        handleSpeechInput(partialResults);
-                    }
-
-                    @Override
-                    public void onError(int error) {
-                        isListening = false;
-                        audioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
-                        restartRecognizerLater();
-                    }
-
-                    @Override public void onReadyForSpeech(Bundle params) {}
-                    @Override public void onBeginningOfSpeech() {}
-                    @Override public void onRmsChanged(float rmsdB) {}
-                    @Override public void onBufferReceived(byte[] buffer) {}
-                    @Override public void onEndOfSpeech() {}
-                    @Override public void onEvent(int eventType, Bundle params) {}
-                });
-            }
-
-            private void handleSpeechInput(Bundle bundle) {
-                ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if (matches != null && !matches.isEmpty()) {
-                    String command = matches.get(0).toLowerCase().trim();
-
-                    // 1. MASTER COMMAND: Terminate Background Completely
-                    if (command.equals("junior end") || command.contains("junior end")) {
-                        speak("Shutting down engine, Goodbye Sir.");
-                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                            stopForeground(true);
-                            stopSelf();
-                            System.exit(0);
-                        }, 1200);
-                        return;
-                    }
-
-                    // 2. MASTER COMMAND: Universal Exit / Minimize Action
-                    if (command.contains("exit") || command.contains("band karo")) {
-                        speak("Closing screen, Sir.");
-                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
-                        homeIntent.addCategory(Intent.CATEGORY_HOME);
-                        homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(homeIntent);
-                        isJuniorWakened = false;
-                        return;
-                    }
-
-                    if (!isJuniorWakened) {
-                        if (command.contains("junior")) {
-                            isJuniorWakened = true;
-                            speak("Yes Sir!");
-                            Toast.makeText(getApplicationContext(), "Junior: Yes Sir!", Toast.LENGTH_SHORT).show();
-                        }
-                    } else {
-                        executeCommand(command);
-                        isJuniorWakened = false; 
-                    }
-                }
-            }
-
-            private void executeCommand(String speech) {
-                // Cleaner string isolation logic via direct keyword extraction
-                if (speech.contains("youtube") || speech.contains("play")) {
-                    String query = speech.replaceAll("junior|youtube|play|search|lagao|chalao", "").trim();
-                    Intent intent;
-                    if (query.isEmpty()) {
-                        intent = getPackageManager().getLaunchIntentForPackage("com.google.android.youtube");
-                    } else {
-                        intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)));
-                    }
-                    if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                btnLogin.setOnClickListener(v -> {
+                    String email = etEmail.getText().toString().trim();
+                    String pass = etPassword.getText().toString().trim();
+                    if(!email.isEmpty() && !pass.isEmpty()) {
+                        // Temp Direct Route to Dashboard for Architecture validation
+                        Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
                         startActivity(intent);
-                        speak("Opening YouTube search for " + query);
+                        finish();
+                    } else {
+                        Toast.makeText(this, "Fill Credentials", Toast.LENGTH_SHORT).show();
                     }
-                }
-                else if (speech.contains("google") || speech.contains("search")) {
-                    String query = speech.replaceAll("junior|google|search|khojo|pucho", "").trim();
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(query)));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    speak("Searching Google for " + query);
-                }
-                else if (speech.contains("open") || speech.contains("chalao")) {
-                    String appName = speech.replaceAll("junior|open|chalao|app", "").trim();
-                    launchAnyApp(appName);
-                }
-                else if (speech.contains("volume") || speech.contains("sound")) {
-                    int targetVolume = extractNumber(speech);
-                    if (targetVolume >= 0) {
-                        int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-                        int targetIndex = (targetVolume * maxVol) / 100;
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetIndex, AudioManager.FLAG_SHOW_UI);
-                        speak("Volume changed to " + targetVolume + " percent");
-                    }
-                }
-                else if (speech.contains("brightness") || speech.contains("light")) {
-                    int targetBrightness = extractNumber(speech);
-                    if (targetBrightness >= 0) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.System.canWrite(this)) {
-                            int actualVal = (targetBrightness * 255) / 100;
-                            Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-                            Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, actualVal);
-                            speak("Brightness adjusted");
-                        }
-                    }
-                }
-            }
-
-            private void launchAnyApp(String targetAppName) {
-                PackageManager pm = getPackageManager();
-                List<ApplicationInfo> apps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-                boolean found = false;
-
-                for (ApplicationInfo app : apps) {
-                    String name = app.loadLabel(pm).toString().toLowerCase();
-                    if (name.contains(targetAppName) || targetAppName.contains(name)) {
-                        Intent launchIntent = pm.getLaunchIntentForPackage(app.packageName);
-                        if (launchIntent != null) {
-                            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            startActivity(launchIntent);
-                            speak("Opening " + app.loadLabel(pm));
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if (!found) {
-                    speak("Sorry Sir, I could not find " + targetAppName + " on your device.");
-                }
-            }
-
-            private int extractNumber(String text) {
-                String clean = text.replaceAll("[^0-9]", "");
-                try { return Integer.parseInt(clean); } catch (Exception e) { return -1; }
-            }
-
-            private void speak(String text) {
-                if (tts != null) {
-                    tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "junior_engine_tts");
-                }
-            }
-
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) { 
-                    tts.setLanguage(Locale.US); 
-                    tts.setSpeechRate(1.1f); 
-                }
-            }
-
-            @Override public IBinder onBind(Intent intent) { return null; }
-
-            @Override
-            public void onDestroy() {
-                super.onDestroy();
-                if (speechRecognizer != null) speechRecognizer.destroy();
-                if (tts != null) tts.shutdown();
+                });
             }
         }
         EOF
 
-        # 5. Application Android Manifest Configuration
+        cat << 'EOF' > app/src/main/java/com/fastchat/pro/RegisterActivity.java
+        package com.fastchat.pro;
+
+        import android.os.Bundle;
+        import android.widget.Button;
+        import android.widget.EditText;
+        import android.widget.Toast;
+        import androidx.appcompat.app.AppCompatActivity;
+
+        public class RegisterActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_register);
+
+                EditText etName = findViewById(R.id.etRegName);
+                EditText etEmail = findViewById(R.id.etRegEmail);
+                EditText etPassword = findViewById(R.id.etRegPassword);
+                Button btnReg = findViewById(R.id.btnRegister);
+
+                btnReg.setOnClickListener(v -> {
+                    if(!etName.getText().toString().isEmpty() && !etEmail.getText().toString().isEmpty()) {
+                        Toast.makeText(this, "Account Configured!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                });
+            }
+        }
+        EOF
+
+        cat << 'EOF' > app/src/main/java/com/fastchat/pro/DashboardActivity.java
+        package com.fastchat.pro;
+        import android.os.Bundle;
+        import androidx.appcompat.app.AppCompatActivity;
+
+        public class DashboardActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_dashboard);
+            }
+        }
+        EOF
+
+    - name: 📱 Write Android Manifest Configuration
+      run: |
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-permission android:name="android.permission.RECORD_AUDIO" />
-            <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-            <uses-permission android:name="android.permission.WRITE_SETTINGS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
             
-            <application android:label="Junior AI Pro" android:theme="@style/Theme.App">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+            <uses-permission android:name="android.permission.CAMERA" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+            <application android:label="FastChat Pro" android:theme="@style/Theme.FastChat">
                 
-                <activity android:name="com.ai.junior.MainActivity" android:exported="true">
+                <activity android:name="com.fastchat.pro.LoginActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
 
-                <service android:name="com.ai.junior.JuniorAssistantService" 
-                         android:exported="false"
-                         android:foregroundServiceType="microphone" />
-
+                <activity android:name="com.fastchat.pro.RegisterActivity" android:exported="false" />
+                <activity android:name="com.fastchat.pro.DashboardActivity" android:exported="false" />
             </application>
         </manifest>
         EOF
 
-        # 6. Root Configuration Environment Architectures
+    - name: 🏗️ Setup Root Gradle Build Environments
+      run: |
         cat << 'EOF' > build.gradle
         buildscript {
             repositories { google(); mavenCentral() }
@@ -463,14 +423,13 @@ jobs:
         echo "include ':app'" > settings.gradle
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 7. Application Module Rules
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
         android {
-            namespace "com.ai.junior"
+            namespace "com.fastchat.pro"
             compileSdk 34
             defaultConfig {
-                applicationId "com.ai.junior"
+                applicationId "com.fastchat.pro"
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -480,19 +439,20 @@ jobs:
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
+            implementation 'androidx.recyclerview:recyclerview:1.3.2'
         }
         EOF
 
-    - name: Setup Gradle System
+    - name: Setup Gradle Build Tool
       uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: 8.4
 
-    - name: 🏗️ Compile and Pack Junior Assistant APK
+    - name: 🏗️ Compile and Pack FastChat Architecture
       run: gradle assembleDebug
 
-    - name: 📥 Deliver Assistant Package Artifact
+    - name: 📥 Deliver Project Blueprint
       uses: actions/upload-artifact@v4
       with:
-        name: Junior-AI-Supreme-Pro
+        name: FastChat-Pro-Base
         path: app/build/outputs/apk/debug/app-debug.apk
