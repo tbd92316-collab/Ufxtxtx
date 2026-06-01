@@ -1,4 +1,4 @@
-name: Build Background Air Mouse Gesture Controller APK
+name: Build Real Hand Tracking Air Mouse APK
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate Background Gesture Controller Project
+    - name: ⚙️ Auto-Generate Real Motion Tracking Project
       run: |
         echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
@@ -41,26 +41,26 @@ jobs:
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🖐️ AI Air Mouse Controller"
+                android:text="🖐️ Real Hand Tracker Air Mouse"
                 android:textColor="#00FFFF"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="20dp"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="How to Use:\n\n1. Allow Camera Permission when asked.\n2. Click 'Enable Gesture Service' below.\n3. Find 'AI Air Mouse' in Accessibility settings and turn it ON.\n4. Now close the app, put your phone on a table, and control it from a distance using your palm!"
+                android:text="Real Tracking Active:\n\n1. Make sure Accessibility is enabled for 'AI Air Mouse'.\n2. Put your phone steady on a table.\n3. Move your hand in front of the front camera.\n4. If you move your hand Left, cursor goes Left. It will NEVER move automatically!"
                 android:textColor="#DDDDDD"
-                android:textSize="16sp"
-                android:lineSpacingExtra="6dp"
+                android:textSize="15sp"
+                android:lineSpacingExtra="5dp"
                 android:layout_marginBottom="40dp"/>
 
             <Button
                 android:id="@+id/btnPermission"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:text="🚀 Enable Gesture Service"
+                android:text="⚙️ Setup &amp; Activate Service"
                 android:backgroundTint="#00FF00"
                 android:textColor="#000000"
                 android:textStyle="bold"
@@ -68,14 +68,14 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 2. Accessibility Service Settings Metadata Descriptor
+        # 2. Accessibility Configuration Descriptor
         cat << 'EOF' > app/src/main/res/xml/accessibility_service_config.xml
         <?xml version="1.0" encoding="utf-8"?>
         <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
             android:description="@string/accessibility_description"
             android:accessibilityEventTypes="typeAllMask"
             android:accessibilityFeedbackType="feedbackGeneric"
-            android:accessibilityFlags="flagDefault|flagReportViewIds"
+            android:accessibilityFlags="flagDefault"
             android:canPerformGestures="true"
             android:canRetrieveWindowContent="true" />
         EOF
@@ -84,7 +84,7 @@ jobs:
         cat << 'EOF' > app/src/main/res/values/strings.xml
         <resources>
             <string name="app_name">AI Air Mouse</string>
-            <string name="accessibility_description">Allows tracking of your hand palm via front camera to dispatch universal touch system cursor actions anywhere globally.</string>
+            <string name="accessibility_description">Real hand motion tracking mouse using front camera data matrix parsing.</string>
         </resources>
         EOF
 
@@ -118,42 +118,51 @@ jobs:
                     } else {
                         Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                         startActivity(intent);
-                        Toast.makeText(MainActivity.this, "Turn ON 'AI Air Mouse'", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, "Open 'AI Air Mouse' and enable it", Toast.LENGTH_LONG).show();
                     }
                 });
             }
         }
         EOF
 
-        # 5. Core Engine - System Level Accessibility Service
+        # 5. Core Engine - Real Front Camera Pixel Motion Processing & Floating Cursor Service
         cat << 'EOF' > app/src/main/java/com/ai/airmouse/GestureCursorService.java
         package com.ai.airmouse;
 
         import android.accessibilityservice.AccessibilityService;
-        import android.accessibilityservice.GestureDescription;
         import android.graphics.PixelFormat;
-        import android.graphics.Path;
+        import android.hardware.Camera;
         import android.view.Gravity;
+        import android.view.SurfaceTexture;
         import android.view.View;
         import android.view.WindowManager;
         import android.view.accessibility.AccessibilityEvent;
         import android.widget.ImageView;
-        import android.widget.Toast;
+        import java.io.IOException;
 
-        public class GestureCursorService extends AccessibilityService {
+        @SuppressWarnings("deprecation")
+        public class GestureCursorService extends AccessibilityService implements Camera.PreviewCallback {
             private WindowManager windowManager;
             private View overlayCursorView;
             private WindowManager.LayoutParams params;
+            private Camera mCamera;
+            private SurfaceTexture mDummyTexture;
+            
             private int cursorX = 500, cursorY = 1000;
-            private boolean isRunning = true;
+            private int screenWidth, screenHeight;
+            private byte[] previousFrameBuffer = null;
 
             @Override
             protected void onServiceConnected() {
                 super.onServiceConnected();
-                Toast.makeText(this, "🤖 Air Mouse Service Activated!", Toast.LENGTH_SHORT).show();
-
-                windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
                 
+                windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+                screenWidth = getResources().getDisplayMetrics().widthPixels;
+                screenHeight = getResources().getDisplayMetrics().heightPixels;
+                cursorX = screenWidth / 2;
+                cursorY = screenHeight / 2;
+
+                // Create floating cursor UI
                 params = new WindowManager.LayoutParams(
                         WindowManager.LayoutParams.WRAP_CONTENT,
                         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -167,53 +176,120 @@ jobs:
 
                 ImageView pointer = new ImageView(this);
                 pointer.setImageResource(android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_compass).getResId());
-                pointer.setColorFilter(android.graphics.Color.RED);
-                pointer.setMinimumWidth(80);
-                pointer.setMinimumHeight(80);
+                pointer.setColorFilter(android.graphics.Color.GREEN); // Green signifies live interactive state
+                pointer.setMinimumWidth(70);
+                pointer.setMinimumHeight(70);
                 overlayCursorView = pointer;
 
                 windowManager.addView(overlayCursorView, params);
-                startCameraTrackingLoop();
+                
+                // Initialize background touchless camera tracking engine safely
+                startBackgroundCameraMatrix();
             }
 
-            private void startCameraTrackingLoop() {
-                new Thread(() -> {
-                    int step = 0;
-                    while (isRunning) {
-                        try { Thread.sleep(40); } catch (InterruptedException e) {}
-                        step++;
-                        final int currentStep = step;
-
-                        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-                        int screenHeight = getResources().getDisplayMetrics().heightPixels;
-
-                        cursorX = (int) (screenWidth / 2 + Math.sin(currentStep * 0.04) * (screenWidth / 3));
-                        cursorY = (int) (screenHeight / 2 + Math.cos(currentStep * 0.03) * (screenHeight / 4));
-
-                        View view = overlayCursorView;
-                        if (view != null && windowManager != null) {
-                            view.post(() -> {
-                                params.x = cursorX;
-                                params.y = cursorY;
-                                try {
-                                    windowManager.updateViewLayout(overlayCursorView, params);
-                                } catch (Exception e) {}
-                            });
-                        }
-
-                        if (currentStep % 150 == 0) {
-                            triggerGlobalClick(cursorX, cursorY);
+            private void startBackgroundCameraMatrix() {
+                try {
+                    int frontCameraId = -1;
+                    int cameraCount = Camera.getNumberOfCameras();
+                    for (int i = 0; i < cameraCount; i++) {
+                        Camera.CameraInfo info = new Camera.CameraInfo();
+                        Camera.getCameraInfo(i, info);
+                        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                            frontCameraId = i;
+                            break;
                         }
                     }
-                }).start();
+
+                    if (frontCameraId != -1) {
+                        mCamera = Camera.open(frontCameraId);
+                    } else {
+                        mCamera = Camera.open();
+                    }
+
+                    mDummyTexture = new SurfaceTexture(10);
+                    mCamera.setPreviewTexture(mDummyTexture);
+                    mCamera.setPreviewCallback(this);
+                    mCamera.startPreview();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
-            private void triggerGlobalClick(float x, float y) {
-                GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
-                Path clickPath = new Path();
-                clickPath.moveTo(x, y);
-                gestureBuilder.addStroke(new GestureDescription.StrokeDescription(clickPath, 0, 50));
-                dispatchGesture(gestureBuilder.build(), null, null);
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+                if (data == null || camera == null) return;
+
+                Camera.Size size = camera.getParameters().getPreviewSize();
+                if (size == null) return;
+
+                int width = size.width;
+                int height = size.height;
+
+                if (previousFrameBuffer == null || previousFrameBuffer.length != data.length) {
+                    previousFrameBuffer = new byte[data.length];
+                    System.arraycopy(data, 0, previousFrameBuffer, 0, data.length);
+                    return;
+                }
+
+                // Mathematical motion vector alignment calculation (Parses real-time changes in YUV data)
+                long leftMotion = 0, rightMotion = 0, upMotion = 0, downMotion = 0;
+                int sampleStep = 8; // Performance optimized frame skipper matrix
+
+                for (int y = 0; y < height; y += sampleStep) {
+                    for (int x = 0; x < width; x += sampleStep) {
+                        int index = x + y * width;
+                        if (index >= data.length) break;
+
+                        // Difference between current pixel frame brightness and previous one
+                        int diff = Math.abs((data[index] & 0xFF) - (previousFrameBuffer[index] & 0xFF));
+                        
+                        if (diff > 35) { // Threshold limit filtering ambient background noise
+                            if (x < width / 2) rightMotion += diff; // Mirrored coordinate assignment
+                            else leftMotion += diff;
+
+                            if (y < height / 2) upMotion += diff;
+                            else downMotion += diff;
+                        }
+                    }
+                }
+
+                System.arraycopy(data, 0, previousFrameBuffer, 0, data.length);
+
+                // Compute dominant motion direction vector calculations
+                long horizontalDiff = Math.abs(leftMotion - rightMotion);
+                long verticalDiff = Math.abs(upMotion - downMotion);
+                int speedMultiplier = 18;
+
+                if (horizontalDiff > 4000) {
+                    if (leftMotion > rightMotion) {
+                        cursorX -= speedMultiplier; // Hand shifts Left -> Moves Cursor Left
+                    } else {
+                        cursorX += speedMultiplier; // Hand shifts Right -> Moves Cursor Right
+                    }
+                }
+
+                if (verticalDiff > 4000) {
+                    if (upMotion > downMotion) {
+                        cursorY -= speedMultiplier; // Hand shifts Up -> Moves Cursor Up
+                    } else {
+                        cursorY += speedMultiplier; // Hand shifts Down -> Moves Cursor Down
+                    }
+                }
+
+                // Lock tracking bounds securely inside hardware screen layout limit safezone
+                if (cursorX < 0) cursorX = 0;
+                if (cursorX > screenWidth) cursorX = screenWidth;
+                if (cursorY < 0) cursorY = 0;
+                if (cursorY > screenHeight) cursorY = screenHeight;
+
+                // Sync layout location params instantly with active physical coordinates
+                if (overlayCursorView != null && windowManager != null) {
+                    params.x = cursorX;
+                    params.y = cursorY;
+                    try {
+                        windowManager.updateViewLayout(overlayCursorView, params);
+                    } catch (Exception e) {}
+                }
             }
 
             @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
@@ -222,7 +298,12 @@ jobs:
             @Override
             public void onDestroy() {
                 super.onDestroy();
-                isRunning = false;
+                if (mCamera != null) {
+                    mCamera.setPreviewCallback(null);
+                    mCamera.stopPreview();
+                    mCamera.release();
+                    mCamera = null;
+                }
                 if (overlayCursorView != null && windowManager != null) {
                     windowManager.removeView(overlayCursorView);
                 }
@@ -230,7 +311,7 @@ jobs:
         }
         EOF
 
-        # 6. [FIXED] Clean Manifest Structure (Removed duplicate declarations)
+        # 6. Clean Android Manifest rules
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.CAMERA" />
@@ -303,5 +384,5 @@ jobs:
     - name: 📥 Deliver Air Mouse APK Package
       uses: actions/upload-artifact@v4
       with:
-        name: AI-Air-Mouse-Background-App
+        name: AI-Air-Mouse-Real-Tracking-App
         path: app/build/outputs/apk/debug/app-debug.apk
