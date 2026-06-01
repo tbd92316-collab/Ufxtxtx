@@ -1,4 +1,4 @@
-name: Build Real Hand Tracking Air Mouse APK
+name: Build Junior AI Assistant APK
 
 on:
   push:
@@ -19,15 +19,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Auto-Generate Real Motion Tracking Project
+    - name: ⚙️ Auto-Generate Junior Assistant Project
       run: |
         echo "Creating structures..."
         mkdir -p app/src/main/res/layout/
-        mkdir -p app/src/main/res/xml/
         mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/java/com/ai/airmouse/
+        mkdir -p app/src/main/java/com/ai/junior/
 
-        # 1. Main App UI Layout
+        # 1. Main App UI Layout (Status Indicator & Setup Guide)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -35,68 +34,57 @@ jobs:
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="#121212"
+            android:background="#0A0E17"
             android:padding="24dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🖐️ Real Hand Tracker Air Mouse"
-                android:textColor="#00FFFF"
-                android:textSize="22sp"
+                android:text="🤖 JUNIOR AI ASSISTANT"
+                android:textColor="#00E5FF"
+                android:textSize="24sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="20dp"/>
+                android:layout_marginBottom="25dp"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Real Tracking Active:\n\n1. Make sure Accessibility is enabled for 'AI Air Mouse'.\n2. Put your phone steady on a table.\n3. Move your hand in front of the front camera.\n4. If you move your hand Left, cursor goes Left. It will NEVER move automatically!"
-                android:textColor="#DDDDDD"
+                android:text="Activation Guide:\n\n1. Click the button below to grant Audio/Microphone permissions.\n2. Allow 'Modify System Settings' if requested.\n3. Junior will now run in the background.\n4. Just say 'Junior' loudly, it will reply 'Yes Sir!' and wait for your next command!"
+                android:textColor="#B0BEC5"
                 android:textSize="15sp"
-                android:lineSpacingExtra="5dp"
+                android:lineSpacingExtra="6dp"
                 android:layout_marginBottom="40dp"/>
 
             <Button
-                android:id="@+id/btnPermission"
+                android:id="@+id/btnInitialize"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
-                android:text="⚙️ Setup &amp; Activate Service"
-                android:backgroundTint="#00FF00"
-                android:textColor="#000000"
+                android:text="🔥 Wake Up Junior"
+                android:backgroundTint="#00E5FF"
+                android:textColor="#0A0E17"
                 android:textStyle="bold"
                 android:textSize="16sp"/>
         </LinearLayout>
         EOF
 
-        # 2. Accessibility Configuration Descriptor
-        cat << 'EOF' > app/src/main/res/xml/accessibility_service_config.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-            android:description="@string/accessibility_description"
-            android:accessibilityEventTypes="typeAllMask"
-            android:accessibilityFeedbackType="feedbackGeneric"
-            android:accessibilityFlags="flagDefault"
-            android:canPerformGestures="true"
-            android:canRetrieveWindowContent="true" />
-        EOF
-
-        # 3. String Resources
+        # 2. String Resources
         cat << 'EOF' > app/src/main/res/values/strings.xml
         <resources>
-            <string name="app_name">AI Air Mouse</string>
-            <string name="accessibility_description">Real hand motion tracking mouse using front camera data matrix parsing.</string>
+            <string name="app_name">Junior AI</string>
         </resources>
         EOF
 
         echo '<resources><style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/themes.xml
 
-        # 4. Main Configurator Activity View Entrypoint
-        cat << 'EOF' > app/src/main/java/com/ai/airmouse/MainActivity.java
-        package com.ai.airmouse;
+        # 3. Main Configuration Entrypoint
+        cat << 'EOF' > app/src/main/java/com/ai/junior/MainActivity.java
+        package com.ai.junior;
 
         import android.Manifest;
         import android.content.Intent;
         import android.content.pm.PackageManager;
+        import android.net.Uri;
+        import android.os.Build;
         import android.os.Bundle;
         import android.provider.Settings;
         import android.widget.Button;
@@ -111,226 +99,247 @@ jobs:
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                Button actionBtn = findViewById(R.id.btnPermission);
-                actionBtn.setOnClickListener(v -> {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 102);
-                    } else {
-                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                Button initBtn = findViewById(R.id.btnInitialize);
+                initBtn.setOnClickListener(v -> {
+                    // Check Microphone/Audio Recording Permissions
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 201);
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
+                        // Request Permission to modify Brightness settings safely
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
                         startActivity(intent);
-                        Toast.makeText(MainActivity.this, "Open 'AI Air Mouse' and enable it", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Allow Write Settings for Brightness Control", Toast.LENGTH_LONG).show();
+                    } else {
+                        // Start Core Background Assistant Service Engine
+                        Intent serviceIntent = new Intent(this, JuniorAssistantService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(serviceIntent);
+                        } else {
+                            startService(serviceIntent);
+                        }
+                        Toast.makeText(this, "Junior Assistant Activated in Background!", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
         }
         EOF
 
-        # 5. [FIXED] Core Engine - Correct Graphics Package Implemented For Seamless Compilation
-        cat << 'EOF' > app/src/main/java/com/ai/airmouse/GestureCursorService.java
-        package com.ai.airmouse;
+        # 4. Core Assistant Background Processor & Voice Action Dispatcher
+        cat << 'EOF' > app/src/main/java/com/ai/junior/JuniorAssistantService.java
+        package com.ai.junior;
 
-        import android.accessibilityservice.AccessibilityService;
-        import android.graphics.PixelFormat;
-        import android.graphics.SurfaceTexture; // Corrected Package Package Path Fix
-        import android.hardware.Camera;
-        import android.view.Gravity;
-        import android.view.View;
-        import android.view.WindowManager;
-        import android.view.accessibility.AccessibilityEvent;
-        import android.widget.ImageView;
+        import android.app.Notification;
+        import android.app.NotificationChannel;
+        import android.app.NotificationManager;
+        import android.app.Service;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.media.AudioManager;
+        import android.net.Uri;
+        import android.os.Build;
+        import android.os.Bundle;
+        import android.os.IBinder;
+        import android.provider.Settings;
+        import android.speech.RecognitionListener;
+        import android.speech.RecognizerIntent;
+        import android.speech.SpeechRecognizer;
+        import android.speech.tts.TextToSpeech;
+        import android.widget.Toast;
+        import java.util.ArrayList;
+        import java.util.Locale;
 
-        @SuppressWarnings("deprecation")
-        public class GestureCursorService extends AccessibilityService implements Camera.PreviewCallback {
-            private WindowManager windowManager;
-            private View overlayCursorView;
-            private WindowManager.LayoutParams params;
-            private Camera mCamera;
-            private SurfaceTexture mDummyTexture;
-            
-            private int cursorX = 500, cursorY = 1000;
-            private int screenWidth, screenHeight;
-            private byte[] previousFrameBuffer = null;
+        public class JuniorAssistantService extends Service implements TextToSpeech.OnInitListener {
+            private SpeechRecognizer speechRecognizer;
+            private Intent recognizerIntent;
+            private TextToSpeech tts;
+            private AudioManager audioManager;
+            private boolean isJuniorWakened = false;
 
             @Override
-            protected void onServiceConnected() {
-                super.onServiceConnected();
+            public void onCreate() {
+                super.onCreate();
+                audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                tts = new TextToSpeech(this, this);
+
+                // Setup Continuous Background Listener Engine
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+                recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+
+                setupListener();
+            }
+
+            @Override
+            public int onStartCommand(Intent intent, int flags, int startId) {
+                // Keep Service Alive globally via standard Foreground Notification Channel
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationChannel channel = new NotificationChannel("junior_channel", "Junior AI Active", NotificationManager.IMPORTANCE_LOW);
+                    getSystemService(NotificationManager.class).createNotificationChannel(channel);
+                    Notification notification = new Notification.Builder(this, "junior_channel")
+                            .setContentTitle("Junior AI Assistant")
+                            .setContentText("Listening for 'Junior' trigger command...")
+                            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                            .build();
+                    startForeground(1, notification);
+                }
                 
-                windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-                screenWidth = getResources().getDisplayMetrics().widthPixels;
-                screenHeight = getResources().getDisplayMetrics().heightPixels;
-                cursorX = screenWidth / 2;
-                cursorY = screenHeight / 2;
-
-                params = new WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.WRAP_CONTENT,
-                        WindowManager.LayoutParams.WRAP_CONTENT,
-                        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                        PixelFormat.TRANSLUCENT);
-
-                params.gravity = Gravity.TOP | Gravity.LEFT;
-                params.x = cursorX;
-                params.y = cursorY;
-
-                ImageView pointer = new ImageView(this);
-                pointer.setImageResource(android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_compass).getResId());
-                pointer.setColorFilter(android.graphics.Color.GREEN);
-                pointer.setMinimumWidth(70);
-                pointer.setMinimumHeight(70);
-                overlayCursorView = pointer;
-
-                windowManager.addView(overlayCursorView, params);
-                startBackgroundCameraMatrix();
+                startListeningLoop();
+                return START_STICKY;
             }
 
-            private void startBackgroundCameraMatrix() {
-                try {
-                    int frontCameraId = -1;
-                    int cameraCount = Camera.getNumberOfCameras();
-                    for (int i = 0; i < cameraCount; i++) {
-                        Camera.CameraInfo info = new Camera.CameraInfo();
-                        Camera.getCameraInfo(i, info);
-                        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                            frontCameraId = i;
-                            break;
+            private void startListeningLoop() {
+                if (speechRecognizer != null) {
+                    speechRecognizer.startListening(recognizerIntent);
+                }
+            }
+
+            private void setupListener() {
+                speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                    @Override
+                    public void onResults(Bundle results) {
+                        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                        if (matches != null && !matches.isEmpty()) {
+                            String command = matches.get(0).toLowerCase();
+
+                            if (!isJuniorWakened) {
+                                // Checking for Wake Up Trigger Name
+                                if (command.contains("junior")) {
+                                    isJuniorWakened = true;
+                                    speak("Yes Sir!");
+                                    Toast.makeText(JuniorAssistantService.this, "Junior: Yes Sir!", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                // Junior is already awake, execute system operations!
+                                executeCommand(command);
+                                isJuniorWakened = false; // Reset to listen for next execution
+                            }
+                        }
+                        startListeningLoop(); // Continue scanning background frequencies
+                    }
+
+                    @Override
+                    public void onError(int error) { startListeningLoop(); }
+                    @Override public void onReadyForSpeech(Bundle params) {}
+                    @Override public void onBeginningOfSpeech() {}
+                    @Override public void onRmsChanged(float rmsdB) {}
+                    @Override public void onBufferReceived(byte[] buffer) {}
+                    @Override public void onEndOfSpeech() {}
+                    @Override public void onPartialResults(Bundle partialResults) {}
+                    @Override public void onEvent(int eventType, Bundle params) {}
+                });
+            }
+
+            private void executeCommand(String speech) {
+                // 1. YouTube Request Automation
+                if (speech.contains("youtube") || speech.contains("play")) {
+                    String query = speech.replace("junior", "").replace("youtube", "").replace("play", "").trim();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + query));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    speak("Opening YouTube for " + query);
+                }
+                // 2. Google Search Automation
+                else if (speech.contains("google") || speech.contains("search")) {
+                    String query = speech.replace("junior", "").replace("google", "").replace("search", "").trim();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + query));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    speak("Searching Google for " + query);
+                }
+                // 3. Audio Volume Configuration Management ("volume ko 30 kardo")
+                else if (speech.contains("volume") || speech.contains("sound")) {
+                    int targetVolume = extractNumber(speech);
+                    if (targetVolume >= 0) {
+                        int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                        int targetIndex = (targetVolume * maxVol) / 100; // Translate percentage to system index bounds
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetIndex, AudioManager.FLAG_SHOW_UI);
+                        speak("Setting media volume to " + targetVolume + " percent");
+                    }
+                }
+                // 4. Screen Brightness Matrix Control ("brightness 50 percent kardo")
+                else if (speech.contains("brightness") || speech.contains("light")) {
+                    int targetBrightness = extractNumber(speech);
+                    if (targetBrightness >= 0) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.System.canWrite(this)) {
+                            int actualVal = (targetBrightness * 255) / 100; // System takes absolute integer up to 255
+                            Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                            Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, actualVal);
+                            speak("Setting device screen brightness to " + targetBrightness + " percent");
+                        } else {
+                            speak("Please authorize write settings permission first.");
                         }
                     }
+                } else {
+                    speak("I am on it, Sir.");
+                }
+            }
 
-                    if (frontCameraId != -1) {
-                        mCamera = Camera.open(frontCameraId);
-                    } else {
-                        mCamera = Camera.open();
-                    }
-
-                    mDummyTexture = new SurfaceTexture(10);
-                    mCamera.setPreviewTexture(mDummyTexture);
-                    mCamera.setPreviewCallback(this);
-                    mCamera.startPreview();
+            private int extractNumber(String text) {
+                // Regex scanner to instantly parse digit arrays inside user speech structures
+                String clean = text.replaceAll("[^0-9]", "");
+                try {
+                    return Integer.parseInt(clean);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    return -1;
+                }
+            }
+
+            private void speak(String text) {
+                if (tts != null) {
+                    tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "junior_tts");
                 }
             }
 
             @Override
-            public void onPreviewFrame(byte[] data, Camera camera) {
-                if (data == null || camera == null) return;
-
-                Camera.Size size = camera.getParameters().getPreviewSize();
-                if (size == null) return;
-
-                int width = size.width;
-                int height = size.height;
-
-                if (previousFrameBuffer == null || previousFrameBuffer.length != data.length) {
-                    previousFrameBuffer = new byte[data.length];
-                    System.arraycopy(data, 0, previousFrameBuffer, 0, data.length);
-                    return;
-                }
-
-                long leftMotion = 0, rightMotion = 0, upMotion = 0, downMotion = 0;
-                int sampleStep = 8; 
-
-                for (int y = 0; y < height; y += sampleStep) {
-                    for (int x = 0; x < width; x += sampleStep) {
-                        int index = x + y * width;
-                        if (index >= data.length) break;
-
-                        int diff = Math.abs((data[index] & 0xFF) - (previousFrameBuffer[index] & 0xFF));
-                        
-                        if (diff > 35) { 
-                            if (x < width / 2) rightMotion += diff; 
-                            else leftMotion += diff;
-
-                            if (y < height / 2) upMotion += diff;
-                            else downMotion += diff;
-                        }
-                    }
-                }
-
-                System.arraycopy(data, 0, previousFrameBuffer, 0, data.length);
-
-                long horizontalDiff = Math.abs(leftMotion - rightMotion);
-                long verticalDiff = Math.abs(upMotion - downMotion);
-                int speedMultiplier = 18;
-
-                if (horizontalDiff > 4000) {
-                    if (leftMotion > rightMotion) {
-                        cursorX -= speedMultiplier; 
-                    } else {
-                        cursorX += speedMultiplier; 
-                    }
-                }
-
-                if (verticalDiff > 4000) {
-                    if (upMotion > downMotion) {
-                        cursorY -= speedMultiplier; 
-                    } else {
-                        cursorY += speedMultiplier; 
-                    }
-                }
-
-                if (cursorX < 0) cursorX = 0;
-                if (cursorX > screenWidth) cursorX = screenWidth;
-                if (cursorY < 0) cursorY = 0;
-                if (cursorY > screenHeight) cursorY = screenHeight;
-
-                if (overlayCursorView != null && windowManager != null) {
-                    params.x = cursorX;
-                    params.y = cursorY;
-                    try {
-                        windowManager.updateViewLayout(overlayCursorView, params);
-                    } catch (Exception e) {}
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    tts.setLanguage(Locale.getDefault());
                 }
             }
 
-            @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
-            @Override public void onInterrupt() {}
+            @Override
+            public IBinder onBind(Intent intent) { return null; }
 
             @Override
             public void onDestroy() {
                 super.onDestroy();
-                if (mCamera != null) {
-                    mCamera.setPreviewCallback(null);
-                    mCamera.stopPreview();
-                    mCamera.release();
-                    mCamera = null;
+                if (speechRecognizer != null) {
+                    speechRecognizer.destroy();
                 }
-                if (overlayCursorView != null && windowManager != null) {
-                    windowManager.removeView(overlayCursorView);
+                if (tts != null) {
+                    tts.stop();
+                    tts.shutdown();
                 }
             }
         }
         EOF
 
-        # 6. Clean Android Manifest rules
+        # 5. Application Android Manifest Configuration
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+            <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+            <uses-permission android:name="android.permission.WRITE_SETTINGS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             
-            <application android:label="AI Air Mouse" android:theme="@style/Theme.App">
+            <application android:label="Junior AI" android:theme="@style/Theme.App">
                 
-                <activity android:name="com.ai.airmouse.MainActivity" android:exported="true">
+                <activity android:name="com.ai.junior.MainActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
 
-                <service android:name="com.ai.airmouse.GestureCursorService"
-                    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.accessibilityservice.AccessibilityService" />
-                    </intent-filter>
-                    <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config" />
-                </service>
+                <service android:name="com.ai.junior.JuniorAssistantService" android:exported="false" />
 
             </application>
         </manifest>
         EOF
 
-        # 7. Root Buildscript Compilation Structures
+        # 6. Root Configuration Environment Architectures
         cat << 'EOF' > build.gradle
         buildscript {
             repositories { google(); mavenCentral() }
@@ -344,14 +353,14 @@ jobs:
         echo "include ':app'" > settings.gradle
         echo "android.useAndroidX=true" > gradle.properties
 
-        # 8. App Specification Module Rules
+        # 7. Application Module Rules
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
         android {
-            namespace "com.ai.airmouse"
+            namespace "com.ai.junior"
             compileSdk 34
             defaultConfig {
-                applicationId "com.ai.airmouse"
+                applicationId "com.ai.junior"
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -369,11 +378,11 @@ jobs:
       with:
         gradle-version: 8.4
 
-    - name: 🏗️ Run Android Compiler Engine
+    - name: 🏗️ Compile and Pack Junior Assistant APK
       run: gradle assembleDebug
 
-    - name: 📥 Deliver Air Mouse APK Package
+    - name: 📥 Deliver Assistant Package Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: AI-Air-Mouse-Real-Tracking-App
+        name: Junior-AI-Assistant
         path: app/build/outputs/apk/debug/app-debug.apk
