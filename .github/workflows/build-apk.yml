@@ -89,7 +89,7 @@ jobs:
         </resources>
         EOF
 
-    - name: 📱 Create User Interface (UI) Layouts (Fixed Video Call Layout)
+    - name: 📱 Create User Interface (UI) Layouts
       run: |
         cat << 'EOF' > app/src/main/res/layout/activity_login.xml
         <?xml version="1.0" encoding="utf-8"?>
@@ -182,7 +182,6 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # Fixed activity_video_call.xml by adding xmlns:app
         cat << 'EOF' > app/src/main/res/layout/activity_video_call.xml
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -421,24 +420,47 @@ jobs:
         </manifest>
         EOF
 
-    - name: 🏗️ Setup Build Environment
+    - name: 🏗️ Setup Modern Build Environment (Fixed for Gradle 8+)
       run: |
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories { google(); mavenCentral() }
-            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
         }
-        allprojects { repositories { google(); mavenCentral() } }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        include ':app'
         EOF
 
-        echo "include ':app'" > settings.gradle
-        echo "android.useAndroidX=true" > gradle.properties
+        cat << 'EOF' > build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.2' apply false
+        }
+        EOF
+
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.nonTransitiveRClass=true
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+        EOF
 
         cat << 'EOF' > app/build.gradle
-        apply plugin: 'com.android.application'
+        plugins {
+            id 'com.android.application'
+        }
+
         android {
             namespace "com.fastchat.ultimate"
             compileSdk 34
+
             defaultConfig {
                 applicationId "com.fastchat.ultimate"
                 minSdk 24
@@ -446,7 +468,13 @@ jobs:
                 versionCode 1
                 versionName "1.0"
             }
+
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
         }
+
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
@@ -454,8 +482,11 @@ jobs:
         }
         EOF
 
+    - name: Generate Gradle Wrapper
+      run: gradle wrapper --gradle-version 8.4
+
     - name: Compile and Pack
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug --no-daemon
 
     - name: Deliver APK
       uses: actions/upload-artifact@v4
