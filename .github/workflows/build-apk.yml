@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Setup JDK 17
@@ -18,49 +18,39 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Keyboard Service
+    - name: ⚙️ Setup Project Structure
       run: |
         mkdir -p app/src/main/java/com/fastchat/keyboard/
+        mkdir -p app/src/main/res/layout/
+        mkdir -p app/src/main/res/xml/
+
+    - name: 📱 Create Keyboard Service & UI
+      run: |
         cat << 'EOF' > app/src/main/java/com/fastchat/keyboard/ImageKeyboardService.java
         package com.fastchat.keyboard;
         import android.inputmethodservice.InputMethodService;
         import android.view.View;
-        import android.view.inputmethod.InputConnection;
-        import android.widget.Button;
-        import android.util.Base64;
-        import android.graphics.Bitmap;
-        import java.io.ByteArrayOutputStream;
-
         public class ImageKeyboardService extends InputMethodService {
-            @Override
-            public View onCreateInputView() {
-                View view = getLayoutInflater().inflate(R.layout.keyboard_view, null);
-                Button btnSendImg = view.findViewById(R.id.btnSendImg);
-                
-                btnSendImg.setOnClickListener(v -> {
-                    // Yaha user gallery se photo select karega
-                    // Bitmap bitmap = selectFromGallery();
-                    // String base64 = convertToBase64(bitmap);
-                    // getCurrentInputConnection().commitText(base64, 1);
-                });
-                return view;
+            @Override public View onCreateInputView() {
+                return getLayoutInflater().inflate(R.layout.keyboard_view, null);
             }
         }
         EOF
 
-    - name: 📱 Create Keyboard UI
-      run: |
-        mkdir -p app/src/main/res/layout/
         cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="250dp"
-            android:orientation="horizontal" android:gravity="center">
+            android:orientation="horizontal" android:gravity="center" android:background="#2C2C2C">
             <Button android:id="@+id/btnSendImg" android:layout_width="wrap_content" 
                     android:layout_height="wrap_content" android:text="🖼️ Insert Photo"/>
         </LinearLayout>
         EOF
 
-    - name: 🔑 Android Manifest with Keyboard Service
+        cat << 'EOF' > app/src/main/res/xml/method.xml
+        <input-method xmlns:android="http://schemas.android.com/apk/res/android" />
+        EOF
+
+    - name: 🔑 Android Manifest
       run: |
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -78,13 +68,24 @@ jobs:
         </manifest>
         EOF
 
-    - name: 🏗️ Build APK
+    - name: 🏗️ Setup Gradle & Build APK
       run: |
-        # Gradle settings...
+        # Gradle Wrapper create karna zaroori hai error se bachne ke liye
+        gradle wrapper --gradle-version 8.4
+        chmod +x gradlew
+        
+        # Basic build.gradle file create karna
+        echo "plugins { id 'com.android.application' }
+        android { 
+            namespace 'com.fastchat.keyboard'
+            compileSdk 34
+            defaultConfig { applicationId 'com.fastchat.keyboard'; minSdk 24; targetSdk 34 }
+        }" > app/build.gradle
+        
         ./gradlew assembleDebug --no-daemon
 
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: Image-Keyboard
+        name: Image-Keyboard-Final
         path: app/build/outputs/apk/debug/app-debug.apk
