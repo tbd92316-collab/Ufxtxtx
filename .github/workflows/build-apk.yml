@@ -18,16 +18,39 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Filesystem & Full UI
+    - name: ⚙️ Setup Filesystem & Repositories
       run: |
         mkdir -p app/src/main/java/com/fastchat/keyboard/
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/xml/
 
-        # 1. Settings.gradle (Root)
-        echo "include ':app'" > settings.gradle
+        # 1. Settings.gradle (Fixing Plugin Repositories Error)
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        include ':app'
+        EOF
 
-        # 2. Main Manifest
+        # 2. Root build.gradle
+        cat << 'EOF' > build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.2' apply false
+        }
+        EOF
+
+        # 3. Main Manifest with Storage Access
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.keyboard">
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -42,20 +65,18 @@ jobs:
         </manifest>
         EOF
 
-        # 3. Keyboard Logic with Typing Support
+        # 4. Keyboard Logic with Typing & Input Connections
         cat << 'EOF' > app/src/main/java/com/fastchat/keyboard/ImageKeyboardService.java
         package com.fastchat.keyboard;
         import android.inputmethodservice.InputMethodService;
         import android.view.View;
         import android.view.inputmethod.InputConnection;
         import android.widget.Button;
-        import android.widget.LinearLayout;
 
         public class ImageKeyboardService extends InputMethodService {
             @Override public View onCreateInputView() {
                 View view = getLayoutInflater().inflate(R.layout.keyboard_view, null);
                 
-                // Typing logic for buttons
                 setupKey(view, R.id.key_q, "q"); setupKey(view, R.id.key_w, "w");
                 setupKey(view, R.id.key_e, "e"); setupKey(view, R.id.key_r, "r");
                 setupKey(view, R.id.key_t, "t"); setupKey(view, R.id.key_y, "y");
@@ -63,7 +84,6 @@ jobs:
                 setupKey(view, R.id.key_o, "o"); setupKey(view, R.id.key_p, "p");
                 setupKey(view, R.id.key_space, " ");
 
-                // Delete Button Logic
                 Button del = view.findViewById(R.id.key_delete);
                 if(del != null) {
                     del.setOnClickListener(v -> {
@@ -71,15 +91,6 @@ jobs:
                         if (ic != null) ic.deleteSurroundingText(1, 0);
                     });
                 }
-
-                // Image Selection Button
-                Button btnImage = view.findViewById(R.id.btn_select_image);
-                if(btnImage != null) {
-                    btnImage.setOnClickListener(v -> {
-                        // Storage se photo select karne ka feature triggers yahan se hoga
-                    });
-                }
-
                 return view;
             }
 
@@ -95,46 +106,61 @@ jobs:
         }
         EOF
 
-        # 4. Premium Keyboard UI Layout (Row by Row Typing UI)
+        # 5. Full QWERTY Typing UI
         cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:background="#1E1E1E" android:padding="5dp">
             
-            <!-- Top Action Bar for Image Feature -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="45dp" android:orientation="horizontal" android:gravity="center">
-                <Button android:id="@+id/btn_select_image" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼️ INSERT IMAGE AS TEXT" android:textSize="12sp" android:backgroundTint="#00E676" android:textColor="#000000"/>
+                <Button android:id="@+id/btn_select_image" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼️ INSERT IMAGE AS EMOJI" android:textSize="12sp" android:backgroundTint="#00E676" android:textColor="#000000"/>
             </LinearLayout>
 
-            <!-- Row 1: QWERTY -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="50dp" android:orientation="horizontal">
-                <Button android:id="@+id/key_q" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Q" android:textSize="14sp"/>
-                <Button android:id="@+id/key_w" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="W" android:textSize="14sp"/>
-                <Button android:id="@+id/key_e" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="E" android:textSize="14sp"/>
-                <Button android:id="@+id/key_r" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="R" android:textSize="14sp"/>
-                <Button android:id="@+id/key_t" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="T" android:textSize="14sp"/>
-                <Button android:id="@+id/key_y" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Y" android:textSize="14sp"/>
-                <Button android:id="@+id/key_u" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="U" android:textSize="14sp"/>
-                <Button android:id="@+id/key_i" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="I" android:textSize="14sp"/>
-                <Button android:id="@+id/key_o" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="O" android:textSize="14sp"/>
-                <Button android:id="@+id/key_p" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="P" android:textSize="14sp"/>
+                <Button android:id="@+id/key_q" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Q"/>
+                <Button android:id="@+id/key_w" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="W"/>
+                <Button android:id="@+id/key_e" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="E"/>
+                <Button android:id="@+id/key_r" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="R"/>
+                <Button android:id="@+id/key_t" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="T"/>
+                <Button android:id="@+id/key_y" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Y"/>
+                <Button android:id="@+id/key_u" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="U"/>
+                <Button android:id="@+id/key_i" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="I"/>
+                <Button android:id="@+id/key_o" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="O"/>
+                <Button android:id="@+id/key_p" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="P"/>
             </LinearLayout>
 
-            <!-- Row 2: Bottom Operations -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="50dp" android:orientation="horizontal" android:layout_marginTop="5dp">
-                <Button android:id="@+id/key_space" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="3" android:text="SPACE" android:textSize="14sp"/>
-                <Button android:id="@+id/key_delete" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="⌫" android:textSize="16sp" android:backgroundTint="#D32F2F"/>
+                <Button android:id="@+id/key_space" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="3" android:text="SPACE"/>
+                <Button android:id="@+id/key_delete" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="⌫" android:backgroundTint="#D32F2F"/>
             </LinearLayout>
         </LinearLayout>
         EOF
 
         echo '<input-method xmlns:android="http://schemas.android.com/apk/res/android" />' > app/src/main/res/xml/method.xml
 
-        # 5. Build Gradle
-        echo "plugins { id 'com.android.application' }
-        android { namespace 'com.fastchat.keyboard'; compileSdk 34; defaultConfig { applicationId 'com.fastchat.keyboard'; minSdk 24; targetSdk 34 } }" > app/build.gradle
+        # 6. Correct App-Level build.gradle
+        cat << 'EOF' > app/build.gradle
+        plugins {
+            id 'com.android.application'
+        }
+        android {
+            namespace 'com.fastchat.keyboard'
+            compileSdk 34
+            defaultConfig {
+                applicationId 'com.fastchat.keyboard'
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+        }
+        EOF
 
-    - name: 🏗️ Build Full Setup APK
+    - name: 🏗️ Build Fixed APK
       run: |
         gradle wrapper --gradle-version 8.4
         chmod +x gradlew
@@ -143,5 +169,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: Real-UI-Image-Keyboard
+        name: Real-UI-Keyboard-App
         path: app/build/outputs/apk/debug/app-debug.apk
