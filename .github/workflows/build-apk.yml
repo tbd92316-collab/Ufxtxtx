@@ -54,6 +54,13 @@ jobs:
           }
           EOF
 
+          # ---- gradle.properties (Fix AndroidX error) ----
+          cat > gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+
           # ---- App module build.gradle ----
           mkdir -p app
           cat > app/build.gradle << 'EOF'
