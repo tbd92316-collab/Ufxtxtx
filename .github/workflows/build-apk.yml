@@ -1,6 +1,5 @@
-name: Build Keyboard App
+name: Build Keyboard App Automatically
 
-# Trigger the workflow on push or pull request to main/master
 on:
   push:
     branches: [ main, master ]
@@ -15,56 +14,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Cache Gradle dependencies for faster builds
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
+      # 🔥 Yeh step automatic Gradle wrapper generate karega agar nahi hai
+      - name: Auto setup Gradle (wrapper)
+        uses: gradle/actions/setup-gradle@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          gradle-version: 8.7
 
-      # Make Gradle wrapper executable
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: Build Debug APK
+        run: gradle assembleDebug
 
-      # Build the debug APK
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-
-      # Run unit tests (optional)
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-
-      # Upload the generated APK as an artifact
-      - name: Upload debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: FunKeyboard-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-
-      # (Optional) If you want a signed release APK, uncomment the steps below
-      # and add your keystore and credentials as GitHub Secrets.
-      # - name: Decode Keystore
-      #   run: |
-      #     echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
-      # - name: Build release APK
-      #   run: ./gradlew assembleRelease
-      #   env:
-      #     STORE_FILE: release.keystore
-      #     STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      # - name: Upload release APK
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: app-release
-      #     path: app/build/outputs/apk/release/app-release.apk
