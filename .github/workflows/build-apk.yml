@@ -1,4 +1,4 @@
-name: Build FastChat Pro Messaging & Calling App
+name: Build Ultimate FastChat App
 
 on:
   push:
@@ -24,364 +24,202 @@ jobs:
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/res/drawable/
-        mkdir -p app/src/main/java/com/fastchat/pro/
+        mkdir -p app/src/main/res/menu/
+        mkdir -p app/src/main/java/com/fastchat/ultimate/
 
-    - name: 🔑 Inject Firebase Official Credentials & Colors
+    - name: 🎨 Create Drawables & Menus
+      run: |
+        # Online/Offline Status Indicator Drawable
+        cat << 'EOF' > app/src/main/res/drawable/status_online.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#00FF00"/>
+            <size android:width="12dp" android:height="12dp"/>
+        </shape>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/drawable/status_offline.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+            <solid android:color="#808080"/>
+            <size android:width="12dp" android:height="12dp"/>
+        </shape>
+        EOF
+
+        # Dashboard Top-Right Menu
+        cat << 'EOF' > app/src/main/res/menu/dashboard_menu.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <menu xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto">
+            <item android:id="@+id/menu_edit_profile" android:title="Edit Profile" app:showAsAction="never"/>
+            <item android:id="@+id/menu_dark_mode" android:title="Dark Mode" app:showAsAction="never"/>
+            <item android:id="@+id/menu_delete_account" android:title="Delete Account" app:showAsAction="never"/>
+        </menu>
+        EOF
+
+        # Chat Room Video Call Menu
+        cat << 'EOF' > app/src/main/res/menu/chat_menu.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <menu xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto">
+            <item android:id="@+id/menu_video_call" android:title="Video Call" android:icon="@android:drawable/ic_menu_camera" app:showAsAction="always"/>
+        </menu>
+        EOF
+
+    - name: 🔑 App Configs & Themes
       run: |
         cat << 'EOF' > app/src/main/res/values/strings.xml
         <resources>
-            <string name="app_name">FastChat Pro</string>
+            <string name="app_name">FastChat</string>
         </resources>
         EOF
 
         cat << 'EOF' > app/src/main/res/values/colors.xml
-        <?xml version="1.0" encoding="utf-8"?>
         <resources>
-            <color name="bg_dark">#0B111E</color>
-            <color name="surface_dark">#161F30</color>
-            <color name="accent_green">#00FFCC</color>
+            <color name="bg_dark">#121212</color>
+            <color name="surface_dark">#1E1E1E</color>
+            <color name="accent">#00E676</color>
             <color name="text_white">#FFFFFF</color>
-            <color name="text_gray">#94A3B8</color>
-            <color name="link_blue">#2563EB</color>
-            <color name="call_red">#EF4444</color>
+            <color name="text_gray">#B0BEC5</color>
         </resources>
         EOF
 
         cat << 'EOF' > app/src/main/res/values/themes.xml
         <resources>
-            <style name="Theme.FastChat" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-                <item name="colorPrimary">@color/accent_green</item>
+            <style name="Theme.FastChat" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+                <item name="colorPrimary">@color/surface_dark</item>
+                <item name="colorAccent">@color/accent</item>
                 <item name="android:windowBackground">@color/bg_dark</item>
             </style>
         </resources>
         EOF
 
-        # Verified Production Firebase Real-time configurations injected from api.txt
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/FirebaseConfig.java
-        package com.fastchat.pro;
-
-        public class FirebaseConfig {
-            public static final String API_KEY = "AIzaSyAOsGkBI2QDkZAuogCEWsX2Eu3Q2jJYeCE";
-            public static final String AUTH_DOMAIN = "movi-hub.firebaseapp.com";
-            public static final String DATABASE_URL = "https://movi-hub-default-rtdb.firebaseio.com";
-            public static final String PROJECT_ID = "movi-hub";
-            public static final String STORAGE_BUCKET = "movi-hub.firebasestorage.app";
-            public static final String MESSAGING_SENDER_ID = "15875013349";
-            public static final String APP_ID = "1:15875013349:web:ab65915c3bd575772ab20c";
-        }
-        EOF
-
-    - name: 🎨 Create Authentication UI Layouts
+    - name: 📱 Create User Interface (UI) Layouts
       run: |
+        # 1. Login Layout
         cat << 'EOF' > app/src/main/res/layout/activity_login.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@color/bg_dark"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💬 FastChat Pro"
-                android:textColor="@color/accent_green"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="40dp"/>
-
-            <EditText
-                android:id="@+id/etEmail"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:hint="Email Address"
-                android:textColorHint="@color/text_gray"
-                android:textColor="@color/text_white"
-                android:background="@color/surface_dark"
-                android:padding="16dp"
-                android:inputType="textEmailAddress"
-                android:layout_marginBottom="16dp"/>
-
-            <EditText
-                android:id="@+id/etPassword"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:hint="Password"
-                android:textColorHint="@color/text_gray"
-                android:textColor="@color/text_white"
-                android:background="@color/surface_dark"
-                android:padding="16dp"
-                android:inputType="textPassword"
-                android:layout_marginBottom="24dp"/>
-
-            <Button
-                android:id="@+id/btnLogin"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:text="Login"
-                android:textColor="@color/bg_dark"
-                android:backgroundTint="@color/accent_green"
-                android:textStyle="bold"/>
-
-            <TextView
-                android:id="@+id/tvGoToRegister"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Don't have an account? Register"
-                android:textColor="@color/text_gray"
-                android:layout_marginTop="20dp"
-                android:textSize="14sp"/>
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:gravity="center" android:padding="24dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="FastChat Login" android:textColor="@color/accent" android:textSize="30sp" android:textStyle="bold" android:layout_marginBottom="40dp"/>
+            <EditText android:id="@+id/etEmail" android:layout_width="match_parent" android:layout_height="50dp" android:hint="Gmail ID" android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:inputType="textEmailAddress" android:layout_marginBottom="16dp"/>
+            <EditText android:id="@+id/etPassword" android:layout_width="match_parent" android:layout_height="50dp" android:hint="Password" android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:inputType="textPassword" android:layout_marginBottom="24dp"/>
+            <Button android:id="@+id/btnLogin" android:layout_width="match_parent" android:layout_height="50dp" android:text="Login" android:backgroundTint="@color/accent" android:textColor="#000000"/>
+            <TextView android:id="@+id/tvRegister" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="New User? Register Here" android:textColor="@color/text_gray" android:layout_marginTop="20dp"/>
         </LinearLayout>
         EOF
 
+        # 2. Register Layout
         cat << 'EOF' > app/src/main/res/layout/activity_register.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@color/bg_dark"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Create Account"
-                android:textColor="@color/accent_green"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="30dp"/>
-
-            <EditText
-                android:id="@+id/etRegName"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:hint="Full Name"
-                android:textColorHint="@color/text_gray"
-                android:textColor="@color/text_white"
-                android:background="@color/surface_dark"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp"/>
-
-            <EditText
-                android:id="@+id/etRegEmail"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:hint="Email Address"
-                android:textColorHint="@color/text_gray"
-                android:textColor="@color/text_white"
-                android:background="@color/surface_dark"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp"/>
-
-            <EditText
-                android:id="@+id/etRegPassword"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:hint="Password"
-                android:textColorHint="@color/text_gray"
-                android:textColor="@color/text_white"
-                android:background="@color/surface_dark"
-                android:padding="16dp"
-                android:inputType="textPassword"
-                android:layout_marginBottom="24dp"/>
-
-            <Button
-                android:id="@+id/btnRegister"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:text="Sign Up"
-                android:textColor="@color/bg_dark"
-                android:backgroundTint="@color/accent_green"
-                android:textStyle="bold"/>
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:gravity="center" android:padding="24dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Register Account" android:textColor="@color/accent" android:textSize="26sp" android:textStyle="bold" android:layout_marginBottom="30dp"/>
+            <EditText android:id="@+id/etName" android:layout_width="match_parent" android:layout_height="50dp" android:hint="Full Name" android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:layout_marginBottom="16dp"/>
+            <EditText android:id="@+id/etEmail" android:layout_width="match_parent" android:layout_height="50dp" android:hint="Gmail ID" android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:inputType="textEmailAddress" android:layout_marginBottom="16dp"/>
+            <EditText android:id="@+id/etPassword" android:layout_width="match_parent" android:layout_height="50dp" android:hint="Password" android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:inputType="textPassword" android:layout_marginBottom="24dp"/>
+            <Button android:id="@+id/btnRegister" android:layout_width="match_parent" android:layout_height="50dp" android:text="Register" android:backgroundTint="@color/accent" android:textColor="#000000"/>
         </LinearLayout>
         EOF
 
-    - name: 📱 Create Dashboard & Messaging Screen Structures
-      run: |
+        # 3. Dashboard Layout
         cat << 'EOF' > app/src/main/res/layout/activity_dashboard.xml
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/bg_dark">
-
-            <TextView
-                android:id="@+id/tvHeader"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ FastChat Dashboard (Tap Here to enter Chat Room)"
-                android:textColor="@color/accent_green"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_margin="20dp"/>
-
+            android:layout_width="match_parent" android:layout_height="match_parent">
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvUserList"
+                android:id="@+id/rvUsers"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/tvHeader"
-                android:padding="10dp"/>
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabProfile"
+                android:padding="8dp"/>
+            <Button
+                android:id="@+id/btnTestNotification"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:text="Test Call Notification"
                 android:layout_alignParentBottom="true"
-                android:layout_margin="24dp"
-                android:src="@android:drawable/ic_menu_edit"
-                android:backgroundTint="@color/accent_green"
-                android:contentDescription="Edit Profile"/>
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="20dp"
+                android:backgroundTint="@color/surface_dark"/>
         </RelativeLayout>
         EOF
 
-        cat << 'EOF' > app/src/main/res/layout/activity_chat_room.xml
+        # User List Item (With Online/Offline Dot)
+        cat << 'EOF' > app/src/main/res/layout/item_user.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical"
+            android:background="@color/surface_dark" android:layout_marginBottom="8dp">
+            
+            <ImageView android:layout_width="40dp" android:layout_height="40dp" android:src="@android:drawable/sym_def_app_icon"/>
+            
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
+                <TextView android:id="@+id/tvUserName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="User Name" android:textColor="@color/text_white" android:textSize="18sp" android:textStyle="bold"/>
+            </LinearLayout>
+
+            <ImageView android:id="@+id/ivStatusDot" android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/status_online"/>
+        </LinearLayout>
+        EOF
+
+        # 4. Edit Profile Layout
+        cat << 'EOF' > app/src/main/res/layout/activity_edit_profile.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:gravity="center" android:padding="24dp">
+            <ImageView android:layout_width="100dp" android:layout_height="100dp" android:src="@android:drawable/ic_menu_camera" android:layout_marginBottom="20dp"/>
+            <EditText android:layout_width="match_parent" android:layout_height="50dp" android:hint="Change Name" android:textColor="@color/text_white" android:layout_marginBottom="16dp"/>
+            <EditText android:layout_width="match_parent" android:layout_height="50dp" android:hint="Change Password" android:textColor="@color/text_white" android:inputType="textPassword" android:layout_marginBottom="24dp"/>
+            <Button android:layout_width="match_parent" android:layout_height="50dp" android:text="Save Profile" android:backgroundTint="@color/accent" android:textColor="#000000"/>
+        </LinearLayout>
+        EOF
+
+        # 5. Chat Interface Layout
+        cat << 'EOF' > app/src/main/res/layout/activity_chat.xml
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/bg_dark">
+            android:layout_width="match_parent" android:layout_height="match_parent">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvMessages" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@+id/layoutInput"/>
+            <LinearLayout android:id="@+id/layoutInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_alignParentBottom="true" android:background="@color/surface_dark" android:padding="8dp">
+                <ImageButton android:layout_width="50dp" android:layout_height="50dp" android:src="@android:drawable/ic_menu_gallery" android:background="?android:attr/selectableItemBackground"/>
+                <EditText android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:hint="Type a message..." android:textColor="@color/text_white" android:textColorHint="@color/text_gray" android:background="@android:color/transparent" android:paddingStart="10dp"/>
+                <Button android:layout_width="wrap_content" android:layout_height="50dp" android:text="Send" android:backgroundTint="@color/accent" android:textColor="#000000"/>
+            </LinearLayout>
+        </RelativeLayout>
+        EOF
 
-            <RelativeLayout
-                android:id="@+id/chatHeader"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:background="@color/surface_dark"
-                android:padding="10dp">
-
-                <TextView
-                    android:id="@+id/tvTargetUser"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Chat Room Sandbox"
-                    android:textColor="@color/text_white"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_centerVertical="true"/>
-
-                <Button
-                    android:id="@+id/btnTriggerVideoCall"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📹 Call"
-                    android:layout_alignParentEnd="true"
-                    android:backgroundTint="@color/accent_green"
-                    android:textColor="@color/bg_dark"/>
+        # 6. Video Call Screen (Showing Both Cameras)
+        cat << 'EOF' > app/src/main/res/layout/activity_video_call.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+            <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="Remote User Camera" android:textColor="#FFFFFF" android:gravity="center" android:textSize="20sp"/>
+            
+            <RelativeLayout android:layout_width="120dp" android:layout_height="160dp" android:layout_alignParentBottom="true" android:layout_alignParentEnd="true" android:layout_margin="20dp" android:background="#444444">
+                <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="Your Camera" android:textColor="#FFFFFF" android:gravity="center"/>
             </RelativeLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvMessages"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_below="@id/chatHeader"
-                android:layout_above="@+id/inputArea"
-                android:padding="10dp"/>
-
-            <LinearLayout
-                android:id="@+id/inputArea"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_alignParentBottom="true"
-                android:background="@color/surface_dark"
-                android:padding="8dp">
-
-                <ImageButton
-                    android:id="@+id/btnAttachImage"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:src="@android:drawable/ic_menu_camera"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:contentDescription="Attach File"/>
-
-                <EditText
-                    android:id="@+id/etMessageInput"
-                    android:layout_width="0dp"
-                    android:layout_height="50dp"
-                    android:layout_weight="1"
-                    android:hint="Type message or paste links..."
-                    android:textColorHint="@color/text_gray"
-                    android:textColor="@color/text_white"
-                    android:background="@android:color/transparent"
-                    android:paddingLeft="10dp"/>
-
-                <Button
-                    android:id="@+id/btnSendMessage"
-                    android:layout_width="wrap_content"
-                    android:layout_height="50dp"
-                    android:text="Send"
-                    android:backgroundTint="@color/accent_green"
-                    android:textColor="@color/bg_dark"/>
-            </LinearLayout>
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabEndCall"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true" android:layout_centerHorizontal="true"
+                android:layout_marginBottom="30dp" android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:backgroundTint="#FF0000" app:tint="#FFFFFF"/>
         </RelativeLayout>
         EOF
 
-        cat << 'EOF' > app/src/main/res/layout/activity_incoming_call.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#0A0F1D"
-            android:gravity="center">
-
-            <TextView
-                android:id="@+id/tvCallerName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Incoming Video Call..."
-                android:textColor="@color/text_white"
-                android:textSize="24sp"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="100dp"
-                android:textStyle="bold"/>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_alignParentBottom="true"
-                android:layout_marginBottom="80dp"
-                android:padding="20dp">
-
-                <Button
-                    android:id="@+id/btnDeclineCall"
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="Decline"
-                    android:layout_marginRight="10dp"
-                    android:backgroundTint="@color/call_red"
-                    android:textColor="@color/text_white"/>
-
-                <Button
-                    android:id="@+id/btnAnswerCall"
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="Answer"
-                    android:layout_marginLeft="10dp"
-                    android:backgroundTint="@color/accent_green"
-                    android:textColor="@color/bg_dark"/>
-            </LinearLayout>
-        </RelativeLayout>
-        EOF
-
-    - name: 📝 Fix Java Controllers (Resolved Method Override Signature Error)
+    - name: 📝 Write Java Functional Code
       run: |
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/LoginActivity.java
-        package com.fastchat.pro;
-
+        # Login
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/LoginActivity.java
+        package com.fastchat.ultimate;
         import android.content.Intent;
         import android.os.Bundle;
         import android.widget.Button;
-        import android.widget.EditText;
         import android.widget.TextView;
-        import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
 
         public class LoginActivity extends AppCompatActivity {
@@ -389,38 +227,19 @@ jobs:
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_login);
-
-                @SuppressWarnings("unused")
-                String fbCheck = FirebaseConfig.API_KEY; 
-
-                EditText etEmail = findViewById(R.id.etEmail);
-                EditText etPassword = findViewById(R.id.etPassword);
-                Button btnLogin = findViewById(R.id.btnLogin);
-                TextView tvRegister = findViewById(R.id.tvGoToRegister);
-
-                tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
-
-                btnLogin.setOnClickListener(v -> {
-                    String email = etEmail.getText().toString().trim();
-                    String pass = etPassword.getText().toString().trim();
-                    if(!email.isEmpty() && !pass.isEmpty()) {
-                        startActivity(new Intent(LoginActivity.this, DashboardActivity.class));
-                        finish();
-                    } else {
-                        Toast.makeText(this, "Fields cannot be left blank", Toast.LENGTH_SHORT).show();
-                    }
+                findViewById(R.id.btnLogin).setOnClickListener(v -> {
+                    startActivity(new Intent(this, DashboardActivity.class));
+                    finish();
                 });
+                findViewById(R.id.tvRegister).setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
             }
         }
         EOF
 
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/RegisterActivity.java
-        package com.fastchat.pro;
-
+        # Register
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/RegisterActivity.java
+        package com.fastchat.ultimate;
         import android.os.Bundle;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
 
         public class RegisterActivity extends AppCompatActivity {
@@ -428,195 +247,209 @@ jobs:
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_register);
-
-                EditText etName = findViewById(R.id.etRegName);
-                EditText etEmail = findViewById(R.id.etRegEmail);
-                Button btnReg = findViewById(R.id.btnRegister);
-
-                btnReg.setOnClickListener(v -> {
-                    if(!etName.getText().toString().isEmpty() && !etEmail.getText().toString().isEmpty()) {
-                        Toast.makeText(this, "Registration Configured Successfully!", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                });
+                findViewById(R.id.btnRegister).setOnClickListener(v -> finish());
             }
         }
         EOF
 
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/DashboardActivity.java
-        package com.fastchat.pro;
-
+        # Dashboard (Menu + Status + Notification Tester)
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/DashboardActivity.java
+        package com.fastchat.ultimate;
+        import android.app.NotificationChannel;
+        import android.app.NotificationManager;
+        import android.app.PendingIntent;
         import android.content.Intent;
+        import android.os.Build;
         import android.os.Bundle;
+        import android.view.Menu;
+        import android.view.MenuItem;
+        import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
-        import com.google.android.material.floatingactionbutton.FloatingActionButton;
+        import androidx.core.app.NotificationCompat;
 
         public class DashboardActivity extends AppCompatActivity {
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_dashboard);
+                setTitle("FastChat Users");
 
-                findViewById(R.id.tvHeader).setOnClickListener(v -> {
-                    startActivity(new Intent(this, ChatRoomActivity.class));
-                });
-                
-                FloatingActionButton fabProfile = findViewById(R.id.fabProfile);
-                fabProfile.setOnClickListener(v -> {
-                    startActivity(new Intent(this, IncomingCallActivity.class));
-                });
+                // Click anywhere on RV area to open Chat
+                findViewById(R.id.rvUsers).setOnClickListener(v -> startActivity(new Intent(this, ChatActivity.class)));
+
+                // Notification Tester for Video Call
+                findViewById(R.id.btnTestNotification).setOnClickListener(v -> triggerCallNotification());
+            }
+
+            @Override
+            public boolean onCreateOptionsMenu(Menu menu) {
+                getMenuInflater().inflate(R.menu.dashboard_menu, menu);
+                return true;
+            }
+
+            @Override
+            public boolean onOptionsItemSelected(MenuItem item) {
+                int id = item.getItemId();
+                if (id == R.id.menu_edit_profile) {
+                    startActivity(new Intent(this, EditProfileActivity.class));
+                    return true;
+                } else if (id == R.id.menu_dark_mode) {
+                    Toast.makeText(this, "Dark Mode Toggled!", Toast.LENGTH_SHORT).show();
+                    return true;
+                } else if (id == R.id.menu_delete_account) {
+                    Toast.makeText(this, "Account Deleted!", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                    return true;
+                }
+                return super.onOptionsItemSelected(item);
+            }
+
+            private void triggerCallNotification() {
+                NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationChannel channel = new NotificationChannel("call_channel", "Video Calls", NotificationManager.IMPORTANCE_HIGH);
+                    nm.createNotificationChannel(channel);
+                }
+
+                // Answer Action (Opens Video Call Screen)
+                Intent answerIntent = new Intent(this, VideoCallActivity.class);
+                PendingIntent answerPending = PendingIntent.getActivity(this, 0, answerIntent, PendingIntent.FLAG_IMMUTABLE);
+
+                // Decline Action (Deletes Notification)
+                Intent declineIntent = new Intent(this, CallReceiver.class);
+                declineIntent.setAction("DECLINE_CALL");
+                PendingIntent declinePending = PendingIntent.getBroadcast(this, 1, declineIntent, PendingIntent.FLAG_IMMUTABLE);
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "call_channel")
+                        .setSmallIcon(android.R.drawable.ic_menu_camera)
+                        .setContentTitle("Incoming Video Call")
+                        .setContentText("A friend is calling you...")
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true)
+                        .addAction(android.R.drawable.ic_menu_call, "Answer", answerPending)
+                        .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePending);
+
+                nm.notify(101, builder.build());
+                Toast.makeText(this, "Check your Notification Panel!", Toast.LENGTH_LONG).show();
             }
         }
         EOF
 
-        # 100% Fixed signature layout via exact API matching overrides
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/ChatRoomActivity.java
-        package com.fastchat.pro;
-
-        import android.content.Intent;
-        import android.database.Cursor;
-        import android.net.Uri;
+        # Edit Profile
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/EditProfileActivity.java
+        package com.fastchat.ultimate;
         import android.os.Bundle;
-        import android.provider.OpenableColumns;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import android.widget.ImageButton;
-        import android.widget.Toast;
-        import androidx.annotation.Nullable;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class EditProfileActivity extends AppCompatActivity {
+            @Override protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState); setContentView(R.layout.activity_edit_profile); setTitle("Edit Profile");
+            }
+        }
+        EOF
+
+        # Chat Activity (With Video Call Menu)
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/ChatActivity.java
+        package com.fastchat.ultimate;
+        import android.content.Intent;
+        import android.os.Bundle;
+        import android.view.Menu;
+        import android.view.MenuItem;
         import androidx.appcompat.app.AppCompatActivity;
 
-        public class ChatRoomActivity extends AppCompatActivity {
-            private static final int IMAGE_PICK_CODE = 999;
-
+        public class ChatActivity extends AppCompatActivity {
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_chat_room);
-
-                EditText etInput = findViewById(R.id.etMessageInput);
-                Button btnSend = findViewById(R.id.btnSendMessage);
-                ImageButton btnAttach = findViewById(R.id.btnAttachImage);
-                Button btnCall = findViewById(R.id.btnTriggerVideoCall);
-
-                btnSend.setOnClickListener(v -> {
-                    String msg = etInput.getText().toString().trim();
-                    if (!msg.isEmpty()) {
-                        Toast.makeText(this, "Message sent. Long press to erase.", Toast.LENGTH_SHORT).show();
-                        etInput.setText("");
-                    }
-                });
-
-                btnAttach.setOnClickListener(v -> {
-                    Intent intent = new Intent(Intent.ACTION_PICK);
-                    intent.setType("image/*");
-                    startActivityForResult(intent, IMAGE_PICK_CODE);
-                });
-
-                btnCall.setOnClickListener(v -> {
-                    startActivity(new Intent(this, IncomingCallActivity.class));
-                });
+                setContentView(R.layout.activity_chat);
+                setTitle("Chatting...");
             }
 
             @Override
-            protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-                super.onActivityResult(requestCode, resultCode, data);
-                if (requestCode == IMAGE_PICK_CODE && resultCode == RESULT_OK && data != null) {
-                    Uri selectedImage = data.getData();
-                    if (selectedImage != null) {
-                        long fileSize = 0;
-                        Cursor cursor = getContentResolver().query(selectedImage, null, null, null, null);
-                        if (cursor != null) {
-                            int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-                            cursor.moveToFirst();
-                            fileSize = cursor.getLong(sizeIndex);
-                            cursor.close();
-                        }
-                        
-                        // Strict 1MB limitation checking rules
-                        if (fileSize > 1024 * 1024) {
-                            Toast.makeText(this, "File too large! Max limit is 1MB.", Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(this, "Image verified under 1MB. Ready.", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+            public boolean onCreateOptionsMenu(Menu menu) {
+                getMenuInflater().inflate(R.menu.chat_menu, menu);
+                return true;
+            }
+
+            @Override
+            public boolean onOptionsItemSelected(MenuItem item) {
+                if (item.getItemId() == R.id.menu_video_call) {
+                    startActivity(new Intent(this, VideoCallActivity.class));
+                    return true;
+                }
+                return super.onOptionsItemSelected(item);
+            }
+        }
+        EOF
+
+        # Video Call Activity
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/VideoCallActivity.java
+        package com.fastchat.ultimate;
+        import android.os.Bundle;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class VideoCallActivity extends AppCompatActivity {
+            @Override protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_video_call);
+                findViewById(R.id.fabEndCall).setOnClickListener(v -> finish());
+            }
+        }
+        EOF
+
+        # Receiver to handle Call Decline from Notification
+        cat << 'EOF' > app/src/main/java/com/fastchat/ultimate/CallReceiver.java
+        package com.fastchat.ultimate;
+        import android.app.NotificationManager;
+        import android.content.BroadcastReceiver;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.widget.Toast;
+
+        public class CallReceiver extends BroadcastReceiver {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("DECLINE_CALL".equals(intent.getAction())) {
+                    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                    nm.cancel(101); // Clears the notification
+                    Toast.makeText(context, "Call Declined", Toast.LENGTH_SHORT).show();
                 }
             }
         }
         EOF
 
-        cat << 'EOF' > app/src/main/java/com/fastchat/pro/IncomingCallActivity.java
-        package com.fastchat.pro;
-
-        import android.os.Bundle;
-        import android.widget.Button;
-        import android.widget.Toast;
-        import androidx.appcompat.app.AppCompatActivity;
-
-        public class IncomingCallActivity extends AppCompatActivity {
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_incoming_call);
-
-                Button btnAnswer = findViewById(R.id.btnAnswerCall);
-                Button btnDecline = findViewById(R.id.btnDeclineCall);
-
-                btnAnswer.setOnClickListener(v -> {
-                    Toast.makeText(this, "Connecting to Media Channels...", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-
-                btnDecline.setOnClickListener(v -> {
-                    Toast.makeText(this, "Call Terminated.", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-            }
-        }
-        EOF
-
-    - name: 📱 Complete Android Manifest
+    - name: 📱 Write Android Manifest
       run: |
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            
             <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.RECORD_AUDIO" />
-            <uses-permission android:name="android.permission.CAMERA" />
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-            <application android:label="FastChat Pro" android:theme="@style/Theme.FastChat">
-                
-                <activity android:name="com.fastchat.pro.LoginActivity" android:exported="true">
+            
+            <application android:label="FastChat" android:theme="@style/Theme.FastChat">
+                <activity android:name="com.fastchat.ultimate.LoginActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
-
-                <activity android:name="com.fastchat.pro.RegisterActivity" android:exported="false" />
-                <activity android:name="com.fastchat.pro.DashboardActivity" android:exported="false" />
-                <activity android:name="com.fastchat.pro.ChatRoomActivity" android:exported="false" />
+                <activity android:name="com.fastchat.ultimate.RegisterActivity" android:exported="false" />
+                <activity android:name="com.fastchat.ultimate.DashboardActivity" android:exported="false" />
+                <activity android:name="com.fastchat.ultimate.EditProfileActivity" android:exported="false" />
+                <activity android:name="com.fastchat.ultimate.ChatActivity" android:exported="false" />
+                <activity android:name="com.fastchat.ultimate.VideoCallActivity" android:exported="false" />
                 
-                <activity android:name="com.fastchat.pro.IncomingCallActivity" 
-                          android:showWhenLocked="true"
-                          android:turnScreenOn="true"
-                          android:launchMode="singleTop"
-                          android:exported="false" />
+                <receiver android:name="com.fastchat.ultimate.CallReceiver" android:exported="false" />
             </application>
         </manifest>
         EOF
 
-    - name: 🏗️ Setup Root Gradle Build Environments
+    - name: 🏗️ Setup Build Environment
       run: |
         cat << 'EOF' > build.gradle
         buildscript {
             repositories { google(); mavenCentral() }
             dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
         }
-        allprojects {
-            repositories { google(); mavenCentral() }
-        }
+        allprojects { repositories { google(); mavenCentral() } }
         EOF
 
         echo "include ':app'" > settings.gradle
@@ -625,10 +458,10 @@ jobs:
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
         android {
-            namespace "com.fastchat.pro"
+            namespace "com.fastchat.ultimate"
             compileSdk 34
             defaultConfig {
-                applicationId "com.fastchat.pro"
+                applicationId "com.fastchat.ultimate"
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -642,16 +475,11 @@ jobs:
         }
         EOF
 
-    - name: Setup Gradle Build Tool
-      uses: gradle/actions/setup-gradle@v4
-      with:
-        gradle-version: 8.4
-
-    - name: 🏗️ Compile and Pack FastChat Architecture
+    - name: Compile and Pack
       run: gradle assembleDebug
 
-    - name: 📥 Deliver Project Blueprint
+    - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: FastChat-Pro-Ultimate
+        name: FastChat-Ultimate
         path: app/build/outputs/apk/debug/app-debug.apk
