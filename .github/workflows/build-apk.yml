@@ -18,13 +18,19 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Filesystem & Repositories
+    - name: ⚙️ Setup Filesystem, Repositories & AndroidX
       run: |
         mkdir -p app/src/main/java/com/fastchat/keyboard/
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/xml/
 
-        # 1. Settings.gradle (Fixing Plugin Repositories Error)
+        # 1. Gradle Properties (Fixing the AndroidX Error)
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
+
+        # 2. Settings.gradle (Plugin Repositories Setup)
         cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
@@ -43,14 +49,14 @@ jobs:
         include ':app'
         EOF
 
-        # 2. Root build.gradle
+        # 3. Root build.gradle
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2' apply false
         }
         EOF
 
-        # 3. Main Manifest with Storage Access
+        # 4. Main Manifest with Storage Access
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.keyboard">
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -65,7 +71,7 @@ jobs:
         </manifest>
         EOF
 
-        # 4. Keyboard Logic with Typing & Input Connections
+        # 5. Keyboard Logic with Typing & Input Connections
         cat << 'EOF' > app/src/main/java/com/fastchat/keyboard/ImageKeyboardService.java
         package com.fastchat.keyboard;
         import android.inputmethodservice.InputMethodService;
@@ -106,7 +112,7 @@ jobs:
         }
         EOF
 
-        # 5. Full QWERTY Typing UI
+        # 6. Full QWERTY Typing UI
         cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -138,7 +144,7 @@ jobs:
 
         echo '<input-method xmlns:android="http://schemas.android.com/apk/res/android" />' > app/src/main/res/xml/method.xml
 
-        # 6. Correct App-Level build.gradle
+        # 7. Correct App-Level build.gradle
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
