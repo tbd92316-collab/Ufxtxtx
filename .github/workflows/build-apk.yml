@@ -1,324 +1,147 @@
-name: Create & Build FunKeyboard App
+name: Build Full UI Keyboard App
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ "main", "master" ]
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo (empty bhi chalega)
-        uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Setup JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      - name: Generate complete Android Keyboard project
-        run: |
-          # ---- settings.gradle ----
-          cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "FunKeyboard"
-          include ':app'
-          EOF
+    - name: ⚙️ Setup Filesystem & Full UI
+      run: |
+        mkdir -p app/src/main/java/com/fastchat/keyboard/
+        mkdir -p app/src/main/res/layout/
+        mkdir -p app/src/main/res/xml/
 
-          # ---- Root build.gradle (NO allprojects block) ----
-          cat > build.gradle << 'EOF'
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-              }
-          }
-          EOF
+        # 1. Settings.gradle (Root)
+        echo "include ':app'" > settings.gradle
 
-          # ---- gradle.properties (Fix AndroidX error) ----
-          cat > gradle.properties << 'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          EOF
+        # 2. Main Manifest
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.keyboard">
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+            <application android:label="Premium Image Keyboard">
+                <service android:name=".ImageKeyboardService" android:permission="android.permission.BIND_INPUT_METHOD" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.view.InputMethod" />
+                    </intent-filter>
+                    <meta-data android:name="android.view.im" android:resource="@xml/method" />
+                </service>
+            </application>
+        </manifest>
+        EOF
 
-          # ---- App module build.gradle ----
-          mkdir -p app
-          cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-          android {
-              namespace 'com.example.funkeyboard'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.example.funkeyboard"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-          }
-          EOF
+        # 3. Keyboard Logic with Typing Support
+        cat << 'EOF' > app/src/main/java/com/fastchat/keyboard/ImageKeyboardService.java
+        package com.fastchat.keyboard;
+        import android.inputmethodservice.InputMethodService;
+        import android.view.View;
+        import android.view.inputmethod.InputConnection;
+        import android.widget.Button;
+        import android.widget.LinearLayout;
 
-          # ---- AndroidManifest.xml ----
-          mkdir -p app/src/main
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-              <application
-                  android:allowBackup="true"
-                  android:label="Fun Keyboard"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <service
-                      android:name=".KeyboardService"
-                      android:label="Fun Keyboard"
-                      android:permission="android.permission.BIND_INPUT_METHOD"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.view.InputMethod" />
-                      </intent-filter>
-                      <meta-data
-                          android:name="android.view.im"
-                          android:resource="@xml/method" />
-                  </service>
-                  <activity
-                      android:name=".TransparentActivity"
-                      android:theme="@android:style/Theme.Translucent.NoTitleBar"
-                      android:excludeFromRecents="true"
-                      android:exported="false" />
-              </application>
-          </manifest>
-          EOF
+        public class ImageKeyboardService extends InputMethodService {
+            @Override public View onCreateInputView() {
+                View view = getLayoutInflater().inflate(R.layout.keyboard_view, null);
+                
+                // Typing logic for buttons
+                setupKey(view, R.id.key_q, "q"); setupKey(view, R.id.key_w, "w");
+                setupKey(view, R.id.key_e, "e"); setupKey(view, R.id.key_r, "r");
+                setupKey(view, R.id.key_t, "t"); setupKey(view, R.id.key_y, "y");
+                setupKey(view, R.id.key_u, "u"); setupKey(view, R.id.key_i, "i");
+                setupKey(view, R.id.key_o, "o"); setupKey(view, R.id.key_p, "p");
+                setupKey(view, R.id.key_space, " ");
 
-          # ---- method.xml ----
-          mkdir -p app/src/main/res/xml
-          cat > app/src/main/res/xml/method.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <input-method xmlns:android="http://schemas.android.com/apk/res/android" />
-          EOF
+                // Delete Button Logic
+                Button del = view.findViewById(R.id.key_delete);
+                if(del != null) {
+                    del.setOnClickListener(v -> {
+                        InputConnection ic = getCurrentInputConnection();
+                        if (ic != null) ic.deleteSurroundingText(1, 0);
+                    });
+                }
 
-          # ---- keyboard_view.xml ----
-          mkdir -p app/src/main/res/layout
-          cat > app/src/main/res/layout/keyboard_view.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:orientation="vertical"
-              android:background="#EEEEEE"
-              android:padding="4dp">
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:gravity="center">
-                  <Button android:id="@+id/btn_emoji" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="😀 Emoji" android:textSize="12sp" />
-                  <Button android:id="@+id/btn_symbol" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="© Symbol" android:textSize="12sp" />
-                  <Button android:id="@+id/btn_image" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📷 Image" android:textSize="12sp" />
-              </LinearLayout>
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="vertical">
-                  <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:weightSum="10">
-                      <Button android:text="Q" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="W" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="E" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="R" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="T" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="Y" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="U" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="I" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="O" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                      <Button android:text="P" android:layout_weight="1" android:onClick="onKeyClick" android:textSize="10sp"/>
-                  </LinearLayout>
-                  <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                      <Button android:text="Space" android:layout_weight="5" android:onClick="onKeyClick"/>
-                      <Button android:text="⌫" android:layout_weight="2" android:onClick="onKeyClick"/>
-                  </LinearLayout>
-              </LinearLayout>
-          </LinearLayout>
-          EOF
+                // Image Selection Button
+                Button btnImage = view.findViewById(R.id.btn_select_image);
+                if(btnImage != null) {
+                    btnImage.setOnClickListener(v -> {
+                        // Storage se photo select karne ka feature triggers yahan se hoga
+                    });
+                }
 
-          # ---- Java files ----
-          mkdir -p app/src/main/java/com/example/funkeyboard
-          cat > app/src/main/java/com/example/funkeyboard/KeyboardService.java << 'JAVAEOF'
-          package com.example.funkeyboard;
+                return view;
+            }
 
-          import android.content.Intent;
-          import android.graphics.Bitmap;
-          import android.graphics.BitmapFactory;
-          import android.inputmethodservice.InputMethodService;
-          import android.net.Uri;
-          import android.text.Spannable;
-          import android.text.SpannableString;
-          import android.text.style.ImageSpan;
-          import android.view.View;
-          import android.view.inputmethod.InputConnection;
-          import android.widget.Button;
-          import android.widget.Toast;
-          import java.io.InputStream;
+            private void setupKey(View view, int id, String text) {
+                Button btn = view.findViewById(id);
+                if (btn != null) {
+                    btn.setOnClickListener(v -> {
+                        InputConnection ic = getCurrentInputConnection();
+                        if (ic != null) ic.commitText(text, 1);
+                    });
+                }
+            }
+        }
+        EOF
 
-          public class KeyboardService extends InputMethodService {
-              private InputConnection inputConnection;
+        # 4. Premium Keyboard UI Layout (Row by Row Typing UI)
+        cat << 'EOF' > app/src/main/res/layout/keyboard_view.xml
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="#1E1E1E" android:padding="5dp">
+            
+            <!-- Top Action Bar for Image Feature -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="45dp" android:orientation="horizontal" android:gravity="center">
+                <Button android:id="@+id/btn_select_image" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼️ INSERT IMAGE AS TEXT" android:textSize="12sp" android:backgroundTint="#00E676" android:textColor="#000000"/>
+            </LinearLayout>
 
-              @Override
-              public void onCreate() {
-                  super.onCreate();
-                  KeyboardServiceHolder.getInstance().setService(this);
-              }
+            <!-- Row 1: QWERTY -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="50dp" android:orientation="horizontal">
+                <Button android:id="@+id/key_q" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Q" android:textSize="14sp"/>
+                <Button android:id="@+id/key_w" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="W" android:textSize="14sp"/>
+                <Button android:id="@+id/key_e" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="E" android:textSize="14sp"/>
+                <Button android:id="@+id/key_r" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="R" android:textSize="14sp"/>
+                <Button android:id="@+id/key_t" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="T" android:textSize="14sp"/>
+                <Button android:id="@+id/key_y" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Y" android:textSize="14sp"/>
+                <Button android:id="@+id/key_u" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="U" android:textSize="14sp"/>
+                <Button android:id="@+id/key_i" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="I" android:textSize="14sp"/>
+                <Button android:id="@+id/key_o" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="O" android:textSize="14sp"/>
+                <Button android:id="@+id/key_p" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="P" android:textSize="14sp"/>
+            </LinearLayout>
 
-              @Override
-              public View onCreateInputView() {
-                  View view = getLayoutInflater().inflate(R.layout.keyboard_view, null);
-                  Button btnEmoji = view.findViewById(R.id.btn_emoji);
-                  btnEmoji.setOnClickListener(v -> commitText("😊"));
-                  Button btnSymbol = view.findViewById(R.id.btn_symbol);
-                  btnSymbol.setOnClickListener(v -> commitText("© ∑ √ ∞"));
-                  Button btnImage = view.findViewById(R.id.btn_image);
-                  btnImage.setOnClickListener(v -> openGallery());
-                  return view;
-              }
+            <!-- Row 2: Bottom Operations -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="50dp" android:orientation="horizontal" android:layout_marginTop="5dp">
+                <Button android:id="@+id/key_space" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="3" android:text="SPACE" android:textSize="14sp"/>
+                <Button android:id="@+id/key_delete" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="⌫" android:textSize="16sp" android:backgroundTint="#D32F2F"/>
+            </LinearLayout>
+        </LinearLayout>
+        EOF
 
-              public void onKeyClick(View view) {
-                  Button b = (Button) view;
-                  String text = b.getText().toString();
-                  if (text.equals("Space")) {
-                      commitText(" ");
-                  } else if (text.equals("⌫")) {
-                      inputConnection = getCurrentInputConnection();
-                      if (inputConnection != null) inputConnection.deleteSurroundingText(1, 0);
-                  } else {
-                      commitText(text);
-                  }
-              }
+        echo '<input-method xmlns:android="http://schemas.android.com/apk/res/android" />' > app/src/main/res/xml/method.xml
 
-              private void commitText(String text) {
-                  inputConnection = getCurrentInputConnection();
-                  if (inputConnection != null) inputConnection.commitText(text, 1);
-              }
+        # 5. Build Gradle
+        echo "plugins { id 'com.android.application' }
+        android { namespace 'com.fastchat.keyboard'; compileSdk 34; defaultConfig { applicationId 'com.fastchat.keyboard'; minSdk 24; targetSdk 34 } }" > app/build.gradle
 
-              private void openGallery() {
-                  Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                  intent.setType("image/*");
-                  Intent wrapper = new Intent(this, TransparentActivity.class);
-                  wrapper.putExtra("pick_intent", intent);
-                  wrapper.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                  startActivity(wrapper);
-              }
+    - name: 🏗️ Build Full Setup APK
+      run: |
+        gradle wrapper --gradle-version 8.4
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon
 
-              public void onImageSelected(Uri imageUri) {
-                  try {
-                      InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                      Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                      if (bitmap != null) {
-                          int height = (int) (getResources().getDisplayMetrics().density * 20);
-                          Bitmap scaled = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() * height / bitmap.getHeight(), height, true);
-                          ImageSpan imageSpan = new ImageSpan(this, scaled);
-                          SpannableString ss = new SpannableString(" ");
-                          ss.setSpan(imageSpan, 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                          inputConnection = getCurrentInputConnection();
-                          if (inputConnection != null) {
-                              inputConnection.commitText(ss, 1);
-                              Toast.makeText(this, "Image inserted!", Toast.LENGTH_SHORT).show();
-                          }
-                      }
-                  } catch (Exception e) {
-                      e.printStackTrace();
-                  }
-              }
-          }
-          JAVAEOF
-
-          cat > app/src/main/java/com/example/funkeyboard/TransparentActivity.java << 'JAVAEOF'
-          package com.example.funkeyboard;
-
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.net.Uri;
-          import android.os.Bundle;
-
-          public class TransparentActivity extends Activity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  Intent pickIntent = getIntent().getParcelableExtra("pick_intent");
-                  if (pickIntent != null) startActivityForResult(pickIntent, 1001);
-                  else finish();
-              }
-
-              @Override
-              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                  super.onActivityResult(requestCode, resultCode, data);
-                  if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
-                      Uri imageUri = data.getData();
-                      KeyboardService service = KeyboardServiceHolder.getInstance().getService();
-                      if (service != null) service.onImageSelected(imageUri);
-                  }
-                  finish();
-              }
-          }
-          JAVAEOF
-
-          cat > app/src/main/java/com/example/funkeyboard/KeyboardServiceHolder.java << 'JAVAEOF'
-          package com.example.funkeyboard;
-
-          public class KeyboardServiceHolder {
-              private static final KeyboardServiceHolder instance = new KeyboardServiceHolder();
-              private KeyboardService service;
-
-              public static KeyboardServiceHolder getInstance() { return instance; }
-              public void setService(KeyboardService service) { this.service = service; }
-              public KeyboardService getService() { return service; }
-          }
-          JAVAEOF
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
-
-      - name: Build Debug APK
-        run: gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FunKeyboard-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+    - name: Deliver APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Real-UI-Image-Keyboard
+        path: app/build/outputs/apk/debug/app-debug.apk
