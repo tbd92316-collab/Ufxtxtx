@@ -3,14 +3,14 @@ name: Create & Build FunKeyboard App
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:   # manual trigger bhi de sakte ho
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo (khali bhi chalega)
+      - name: Checkout repo (empty bhi chalega)
         uses: actions/checkout@v4
 
       - name: Setup JDK 17
@@ -21,7 +21,7 @@ jobs:
 
       - name: Generate complete Android Keyboard project
         run: |
-          # Root files
+          # ---- settings.gradle ----
           cat > settings.gradle << 'EOF'
           pluginManagement {
               repositories {
@@ -31,7 +31,7 @@ jobs:
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
               repositories {
                   google()
                   mavenCentral()
@@ -41,6 +41,7 @@ jobs:
           include ':app'
           EOF
 
+          # ---- Root build.gradle (NO allprojects block) ----
           cat > build.gradle << 'EOF'
           buildscript {
               repositories {
@@ -51,15 +52,9 @@ jobs:
                   classpath 'com.android.tools.build:gradle:8.2.2'
               }
           }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           EOF
 
-          # App module build.gradle
+          # ---- App module build.gradle ----
           mkdir -p app
           cat > app/build.gradle << 'EOF'
           plugins {
@@ -92,7 +87,7 @@ jobs:
           }
           EOF
 
-          # AndroidManifest.xml
+          # ---- AndroidManifest.xml ----
           mkdir -p app/src/main
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -124,14 +119,14 @@ jobs:
           </manifest>
           EOF
 
-          # res/xml/method.xml
+          # ---- method.xml ----
           mkdir -p app/src/main/res/xml
           cat > app/src/main/res/xml/method.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <input-method xmlns:android="http://schemas.android.com/apk/res/android" />
           EOF
 
-          # Keyboard layout
+          # ---- keyboard_view.xml ----
           mkdir -p app/src/main/res/layout
           cat > app/src/main/res/layout/keyboard_view.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -174,7 +169,7 @@ jobs:
           </LinearLayout>
           EOF
 
-          # Java source files
+          # ---- Java files ----
           mkdir -p app/src/main/java/com/example/funkeyboard
           cat > app/src/main/java/com/example/funkeyboard/KeyboardService.java << 'JAVAEOF'
           package com.example.funkeyboard;
@@ -184,7 +179,6 @@ jobs:
           import android.graphics.BitmapFactory;
           import android.inputmethodservice.InputMethodService;
           import android.net.Uri;
-          import android.os.Build;
           import android.text.Spannable;
           import android.text.SpannableString;
           import android.text.style.ImageSpan;
@@ -195,7 +189,6 @@ jobs:
           import java.io.InputStream;
 
           public class KeyboardService extends InputMethodService {
-
               private InputConnection inputConnection;
 
               @Override
@@ -223,9 +216,7 @@ jobs:
                       commitText(" ");
                   } else if (text.equals("⌫")) {
                       inputConnection = getCurrentInputConnection();
-                      if (inputConnection != null) {
-                          inputConnection.deleteSurroundingText(1, 0);
-                      }
+                      if (inputConnection != null) inputConnection.deleteSurroundingText(1, 0);
                   } else {
                       commitText(text);
                   }
@@ -233,9 +224,7 @@ jobs:
 
               private void commitText(String text) {
                   inputConnection = getCurrentInputConnection();
-                  if (inputConnection != null) {
-                      inputConnection.commitText(text, 1);
-                  }
+                  if (inputConnection != null) inputConnection.commitText(text, 1);
               }
 
               private void openGallery() {
@@ -283,11 +272,8 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   Intent pickIntent = getIntent().getParcelableExtra("pick_intent");
-                  if (pickIntent != null) {
-                      startActivityForResult(pickIntent, 1001);
-                  } else {
-                      finish();
-                  }
+                  if (pickIntent != null) startActivityForResult(pickIntent, 1001);
+                  else finish();
               }
 
               @Override
@@ -296,9 +282,7 @@ jobs:
                   if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
                       Uri imageUri = data.getData();
                       KeyboardService service = KeyboardServiceHolder.getInstance().getService();
-                      if (service != null) {
-                          service.onImageSelected(imageUri);
-                      }
+                      if (service != null) service.onImageSelected(imageUri);
                   }
                   finish();
               }
@@ -312,17 +296,9 @@ jobs:
               private static final KeyboardServiceHolder instance = new KeyboardServiceHolder();
               private KeyboardService service;
 
-              public static KeyboardServiceHolder getInstance() {
-                  return instance;
-              }
-
-              public void setService(KeyboardService service) {
-                  this.service = service;
-              }
-
-              public KeyboardService getService() {
-                  return service;
-              }
+              public static KeyboardServiceHolder getInstance() { return instance; }
+              public void setService(KeyboardService service) { this.service = service; }
+              public KeyboardService getService() { return service; }
           }
           JAVAEOF
 
