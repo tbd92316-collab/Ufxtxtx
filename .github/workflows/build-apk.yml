@@ -24,7 +24,7 @@ jobs:
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
 
-        # 1. Gradle Properties (AndroidX Fix)
+        # 1. Gradle Properties
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
@@ -56,18 +56,17 @@ jobs:
         }
         EOF
 
-        # 4. Android Manifest with Overlay Permission
+        # 4. Android Manifest with Proper Permissions & Style Theme
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.dualspace">
             
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
             <uses-permission android:name="android.permission.INTERNET" />
 
-            <application android:label="Floating Dual Space" android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+            <application android:label="Floating Dual Space" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                 
                 <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
-                        <action android:name="android.view.InputMethod" />
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
@@ -79,7 +78,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. MainActivity (Permission Checker and Starter)
+        # 5. MainActivity (With Context Theme Wrapper for safe Inflation)
         cat << 'EOF' > app/src/main/java/com/fastchat/dualspace/MainActivity.java
         package com.fastchat.dualspace;
 
@@ -88,7 +87,9 @@ jobs:
         import android.os.Build;
         import android.os.Bundle;
         import android.provider.Settings;
+        import android.view.Gravity;
         import android.widget.Button;
+        import android.widget.LinearLayout;
         import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
 
@@ -99,9 +100,15 @@ jobs:
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 
+                LinearLayout layout = new LinearLayout(this);
+                layout.setOrientation(LinearLayout.VERTICAL);
+                layout.setGravity(Gravity.CENTER);
+
                 Button btnStart = new Button(this);
-                btnStart.setText("Open Floating Browser / App Space");
-                setContentView(btnStart);
+                btnStart.setText("Open Floating Browser");
+                layout.addView(btnStart);
+                
+                setContentView(layout);
 
                 btnStart.setOnClickListener(v -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -116,7 +123,7 @@ jobs:
 
             private void startFloatingSpace() {
                 startService(new Intent(MainActivity.this, FloatingWindowService.class));
-                finish(); // Close main UI to see floating window over home screen
+                finish(); 
             }
 
             @Override
@@ -126,14 +133,14 @@ jobs:
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                         startFloatingSpace();
                     } else {
-                        Toast.makeText(this, "Permission required for Floating Window!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Permission required!", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
         }
         EOF
 
-        # 6. Floating Window Service Core Logic
+        # 6. Floating Window Service (Context Inflation Fix)
         cat << 'EOF' > app/src/main/java/com/fastchat/dualspace/FloatingWindowService.java
         package com.fastchat.dualspace;
 
@@ -143,6 +150,7 @@ jobs:
         import android.graphics.PixelFormat;
         import android.os.Build;
         import android.os.IBinder;
+        import android.view.ContextThemeWrapper;
         import android.view.Gravity;
         import android.view.LayoutInflater;
         import android.view.MotionEvent;
@@ -166,10 +174,10 @@ jobs:
                 super.onCreate();
                 mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
                 
-                // Layout inflate karna
-                mFloatingView = LayoutInflater.from(this).inflate(R.layout.floating_layout, null);
+                // Fix: Wrapper to prevent theme inflation crashes inside Service
+                ContextThemeWrapper contextWrapper = new ContextThemeWrapper(this, R.style.Theme_AppCompat_Light_NoActionBar);
+                mFloatingView = LayoutInflater.from(contextWrapper).inflate(R.layout.floating_layout, null);
 
-                // Window layout parameters settings
                 int layoutFlag;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -187,22 +195,17 @@ jobs:
                 params.gravity = Gravity.TOP | Gravity.START;
                 params.x = 100;
                 params.y = 100;
-
-                // Adjust window size
                 params.width = 800;
-                params.height = 1000;
+                params.height = 1100;
 
-                // WebView integrate karna cloned view mimic karne ke liye
                 WebView webView = mFloatingView.findViewById(R.id.floating_webview);
                 webView.setWebViewClient(new WebViewClient());
                 webView.getSettings().setJavaScriptEnabled(true);
-                webView.loadUrl("https://www.google.com"); // Dual space placeholder
+                webView.loadUrl("https://www.google.com"); 
 
-                // Close button logic
                 Button btnClose = mFloatingView.findViewById(R.id.btn_close_floating);
                 btnClose.setOnClickListener(v -> stopSelf());
 
-                // Touch and drag window logic
                 mFloatingView.findViewById(R.id.floating_header).setOnTouchListener(new View.OnTouchListener() {
                     private int initialX;
                     private int initialY;
@@ -239,16 +242,16 @@ jobs:
         }
         EOF
 
-        # 7. Floating UI Layout XML (With Header & Drag handle)
+        # 7. Floating Layout View
         cat << 'EOF' > app/src/main/res/layout/floating_layout.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="vertical" android:background="#222222">
             
             <LinearLayout android:id="@+id/floating_header" android:layout_width="match_parent"
-                android:layout_height="40dp" android:background="#333333" android:orientation="horizontal" android:padding="5dp">
+                android:layout_height="45dp" android:background="#333333" android:orientation="horizontal" android:padding="5dp">
                 <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
-                <Button android:id="@+id/btn_close_floating" android:layout_width="wrap_content"
+                <Button android:id="@+id/btn_close_floating" android:layout_width="60dp"
                     android:layout_height="match_parent" android:text="X" android:backgroundTint="#FF3333" android:textColor="#FFFFFF"/>
             </LinearLayout>
 
@@ -256,8 +259,16 @@ jobs:
         </LinearLayout>
         EOF
 
-        # Dummy resources to avoid compile errors
-        echo '<resources><style name="Theme.AppCompat.Light.DarkActionBar" parent=""/></resources>' > app/src/main/res/values/styles.xml
+        # Fixed Real AppCompat Theme Styles (Prevents Theme Crash)
+        cat << 'EOF' > app/src/main/res/values/styles.xml
+        <resources>
+            <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
+                <item name="colorPrimary">#6200EE</item>
+                <item name="colorPrimaryDark">#3700B3</item>
+                <item name="colorAccent">#03DAC6</item>
+            </style>
+        </resources>
+        EOF
 
         # 8. App-Level build.gradle
         cat << 'EOF' > app/build.gradle
@@ -277,10 +288,11 @@ jobs:
         }
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
         }
         EOF
 
-    - name: 🏗️ Build Floating Space APK
+    - name: 🏗️ Build Fixed Floating App
       run: |
         gradle wrapper --gradle-version 8.4
         chmod +x gradlew
@@ -289,5 +301,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: Floating-DualSpace-App
+        name: CrashFree-Floating-Space
         path: app/build/outputs/apk/debug/app-debug.apk
