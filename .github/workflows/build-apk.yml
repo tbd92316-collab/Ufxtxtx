@@ -57,13 +57,15 @@ jobs:
         }
         EOF
 
-        # 4. Android Manifest with Storage Permissions
+        # 4. Android Manifest with All Modern Storage Permissions
         cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.filemanager">
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
+            xmlns:tools="http://schemas.android.com/tools"
+            package="com.fastchat.filemanager">
             
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
 
             <application 
                 android:label="SkyFiles Pro" 
@@ -81,101 +83,125 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Custom Shapes (Round Cards for Blue/White theme)
+        # 5. Advanced UI Drawables (Gradients and Rounded Shapes)
+        cat << 'EOF' > app/src/main/res/drawable/header_gradient.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <gradient 
+                android:startColor="#0D47A1" 
+                android:endColor="#1976D2" 
+                android:angle="45"/>
+            <corners 
+                android:bottomLeftRadius="24dp"
+                android:bottomRightRadius="24dp"/>
+        </shape>
+        EOF
+
         cat << 'EOF' > app/src/main/res/drawable/card_bg.xml
         <shape xmlns:android="http://schemas.android.com/apk/res/android">
             <solid android:color="#FFFFFF"/>
-            <corners android:radius="16dp"/>
+            <corners android:radius="14dp"/>
         </shape>
         EOF
 
         cat << 'EOF' > app/src/main/res/drawable/progress_bg.xml
         <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
             <item android:id="@android:id/background">
-                <shape><corners android:radius="5dp"/><solid android:color="#E0E0E0"/></shape>
+                <shape><corners android:radius="6dp"/><solid android:color="#E3F2FD"/></shape>
             </item>
             <item android:id="@android:id/progress">
                 <clip>
-                    <shape><corners android:radius="5dp"/><solid android:color="#0D47A1"/></shape>
+                    <shape><corners android:radius="6dp"/><solid android:color="#0D47A1"/></shape>
                 </clip>
             </item>
         </layer-list>
         EOF
 
-        # 6. Premium Blue/White UI Layout
+        # 6. Ultra Clean UI Layout with Better Typography
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:background="#F4F6F9">
+            android:orientation="vertical" android:background="#F8FAFC">
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="180dp"
-                android:background="#0D47A1" android:orientation="vertical" android:padding="20dp">
+            <!-- Premium Gradient Header -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="210dp"
+                android:background="@drawable/header_gradient" android:orientation="vertical" android:padding="20dp">
                 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="SkyFiles Pro" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold"/>
+                    android:text="SkyFiles Pro" android:textColor="#FFFFFF" android:textSize="26sp" android:textStyle="bold"/>
                 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Storage Dashboard" android:textColor="#BBDEFB" android:textSize="14sp" android:layout_marginTop="4dp"/>
+                    android:text="Clean • Fast • Secure" android:textColor="#90CAF9" android:textSize="13sp" android:layout_marginTop="2dp"/>
 
+                <!-- Storage Information Box -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:layout_marginTop="20dp" android:padding="15dp">
+                    android:orientation="vertical" android:background="@drawable/card_bg" android:layout_marginTop="20dp" android:padding="16dp" android:elevation="4dp">
                     
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Internal Storage" android:textColor="#0D47A1" android:textStyle="bold" android:textSize="14sp"/>
+                            android:text="Device Storage" android:textColor="#0D47A1" android:textStyle="bold" android:textSize="14sp"/>
                         <TextView android:id="@+id/tv_storage_ratio" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:layout_alignParentRight="true" android:text="75% Used" android:textColor="#555555" android:textSize="12sp"/>
+                            android:layout_alignParentRight="true" android:text="Calculating..." android:textColor="#475569" android:textSize="13sp"/>
                     </RelativeLayout>
 
                     <ProgressBar android:id="@+id/storage_progress" style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="10dp"
-                        android:progress="75" android:progressDrawable="@drawable/progress_bg"/>
+                        android:layout_width="match_parent" android:layout_height="10dp" android:layout_marginTop="12dp"
+                        android:progress="0" android:progressDrawable="@drawable/progress_bg"/>
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Quick Access Categories Grid System -->
             <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:columnCount="2" android:rowCount="2" android:padding="15dp" android:alignmentMode="alignMargins">
+                android:columnCount="4" android:rowCount="1" android:padding="16dp">
                 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="15dp" android:layout_margin="6dp" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼️ Images" android:textColor="#0D47A1" android:textStyle="bold"/>
+                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="12dp" android:layout_margin="4dp" android:gravity="center" android:elevation="2dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼️" android:textSize="22sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Images" android:textColor="#0D47A1" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="15dp" android:layout_margin="6dp" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎬 Videos" android:textColor="#0D47A1" android:textStyle="bold"/>
+                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="12dp" android:layout_margin="4dp" android:gravity="center" android:elevation="2dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎬" android:textSize="22sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Videos" android:textColor="#0D47A1" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="15dp" android:layout_margin="6dp" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎵 Audio" android:textColor="#0D47A1" android:textStyle="bold"/>
+                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="12dp" android:layout_margin="4dp" android:gravity="center" android:elevation="2dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎵" android:textSize="22sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Audio" android:textColor="#0D47A1" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="15dp" android:layout_margin="6dp" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📥 Downloads" android:textColor="#0D47A1" android:textStyle="bold"/>
+                    android:orientation="vertical" android:background="@drawable/card_bg" android:padding="12dp" android:layout_margin="4dp" android:gravity="center" android:elevation="2dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📥" android:textSize="22sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Docs" android:textColor="#0D47A1" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
             </GridLayout>
 
+            <!-- File Explorer Native Subtitle Header -->
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="Files &amp; Folders" android:textColor="#333333" android:textSize="16sp" android:textStyle="bold" android:layout_marginLeft="20dp" android:layout_marginBottom="5dp"/>
+                android:text="Recent Files &amp; Folders" android:textColor="#1E293B" android:textSize="16sp" android:textStyle="bold" android:layout_marginLeft="20dp" android:layout_marginBottom="8dp"/>
 
+            <!-- List Frame -->
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_files"
-                android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp"/>
+                android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginHorizontal="12dp" android:padding="4dp"/>
 
         </LinearLayout>
         EOF
 
-        # 7. MainActivity Java Implementation
+        # 7. MainActivity Java Implementation with Automatic Settings Request Redirect
         cat << 'EOF' > app/src/main/java/com/fastchat/filemanager/MainActivity.java
         package com.fastchat.filemanager;
 
         import android.Manifest;
+        import android.content.Intent;
         import android.content.pm.PackageManager;
+        import android.net.Uri;
         import android.os.Build;
         import android.os.Bundle;
         import android.os.Environment;
         import android.os.StatFs;
+        import android.provider.Settings;
         import android.widget.ProgressBar;
         import android.widget.TextView;
         import android.widget.Toast;
@@ -186,73 +212,118 @@ jobs:
         import java.io.File;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int PERMISSION_REQ_CODE = 500;
+            private static final int STORAGE_PERMISSION_CODE = 100;
 
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                checkPermissions();
-                updateStorageDashboard();
+                if (checkAndRequestPermissions()) {
+                    updateStorageDashboard();
+                }
             }
 
-            private void checkPermissions() {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{
-                            Manifest.permission.READ_EXTERNAL_STORAGE, 
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    }, PERMISSION_REQ_CODE);
+            private boolean checkAndRequestPermissions() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    if (!Environment.isExternalStorageManager()) {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                            intent.addCategory("android.intent.category.DEFAULT");
+                            intent.setData(Uri.parse(String.format("package:%s", getApplicationContext().getPackageName())));
+                            startActivityForResult(intent, STORAGE_PERMISSION_CODE);
+                        } catch (Exception e) {
+                            Intent intent = new Intent();
+                            intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                            startActivityForResult(intent, STORAGE_PERMISSION_CODE);
+                        }
+                        return false;
+                    }
+                    return true;
+                } else {
+                    int readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+                    int writePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    if (readPermission != PackageManager.PERMISSION_GRANTED || writePermission != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        }, STORAGE_PERMISSION_CODE);
+                        return false;
+                    }
+                    return true;
                 }
             }
 
             private void updateStorageDashboard() {
-                File path = Environment.getExternalStorageDirectory();
-                StatFs stat = new StatFs(path.getPath());
-                long blockSize = stat.getBlockSizeLong();
-                long totalBlocks = stat.getBlockCountLong();
-                long availableBlocks = stat.getAvailableBlocksLong();
+                try {
+                    File path = Environment.getExternalStorageDirectory();
+                    StatFs stat = new StatFs(path.getPath());
+                    long blockSize = stat.getBlockSizeLong();
+                    long totalBlocks = stat.getBlockCountLong();
+                    long availableBlocks = stat.getAvailableBlocksLong();
 
-                long totalBytes = totalBlocks * blockSize;
-                long availableBytes = availableBlocks * blockSize;
-                long usedBytes = totalBytes - availableBytes;
+                    long totalBytes = totalBlocks * blockSize;
+                    long availableBytes = availableBlocks * blockSize;
+                    long usedBytes = totalBytes - availableBytes;
 
-                int totalGB = (int) (totalBytes / (1024 * 1024 * 1024));
-                int usedGB = (int) (usedBytes / (1024 * 1024 * 1024));
-                
-                int progressPercent = (totalGB > 0) ? (usedGB * 100 / totalGB) : 0;
+                    double totalGB = totalBytes / (1024.0 * 1024.0 * 1024.0);
+                    double usedGB = usedBytes / (1024.0 * 1024.0 * 1024.0);
+                    
+                    int progressPercent = (totalGB > 0) ? (int)(usedGB * 100 / totalGB) : 0;
 
-                ProgressBar pb = findViewById(R.id.storage_progress);
-                TextView tvRatio = findViewById(R.id.tv_storage_ratio);
+                    ProgressBar pb = findViewById(R.id.storage_progress);
+                    TextView tvRatio = findViewById(R.id.tv_storage_ratio);
 
-                if (pb != null) pb.setProgress(progressPercent);
-                if (tvRatio != null) tvRatio.setText(usedGB + " GB / " + totalGB + " GB (" + progressPercent + "%)");
+                    if (pb != null) pb.setProgress(progressPercent);
+                    if (tvRatio != null) {
+                        tvRatio.setText(String.format("%.1f GB / %.1f GB (%d%%)", usedGB, totalGB, progressPercent));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            protected void onResume() {
+                super.onResume();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    if (Environment.isExternalStorageManager()) {
+                        updateStorageDashboard();
+                    }
+                } else {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        updateStorageDashboard();
+                    }
+                }
             }
 
             @Override
             public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-                if (requestCode == PERMISSION_REQ_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    updateStorageDashboard();
-                } else {
-                    Toast.makeText(this, "Storage Permission Required!", Toast.LENGTH_SHORT).show();
+                if (requestCode == STORAGE_PERMISSION_CODE) {
+                    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        updateStorageDashboard();
+                    } else {
+                        Toast.makeText(this, "Storage Permission is Required!", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         }
         EOF
 
-        # 8. Premium Blue Colors & Material Styles configuration
+        # 8. Modern Custom App Theme Properties
         cat << 'EOF' > app/src/main/res/values/styles.xml
         <resources>
             <style name="Theme.FileManager" parent="Theme.MaterialComponents.Light.NoActionBar">
                 <item name="colorPrimary">#0D47A1</item>
                 <item name="colorPrimaryDark">#0A3982</item>
-                <item name="colorAccent">#0D47A1</item>
+                <item name="colorAccent">#1976D2</item>
+                <item name="android:statusBarColor">#0D47A1</item>
             </style>
         </resources>
         EOF
 
-        # 9. App build.gradle setup
+        # 9. App build.gradle with Recycler Support
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -284,5 +355,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: SkyFiles-Pro-Manager
+        name: SkyFiles-Premium-Edition
         path: app/build/outputs/apk/debug/app-debug.apk
