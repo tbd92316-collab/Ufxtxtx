@@ -25,7 +25,7 @@ jobs:
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/res/drawable/
 
-        # 1. Gradle Properties (Enabling AndroidX to fix your library errors)
+        # 1. Gradle Properties
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
@@ -111,7 +111,7 @@ jobs:
         </layer-list>
         EOF
 
-        # 6. UI Layout with Special Scoped Storage Bypass Warning Panel
+        # 6. UI Layout with Auto-Detect Status Bar
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="match_parent"
@@ -124,7 +124,7 @@ jobs:
                     android:text="SkyFiles Pro" android:textColor="#FFFFFF" android:textSize="26sp" android:textStyle="bold"/>
                 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Data &amp; OBB Advanced Modifier Engine" android:textColor="#90CAF9" android:textSize="13sp" android:layout_marginTop="2dp"/>
+                    android:text="ZArchiver-Style Auto Detection Engine" android:textColor="#90CAF9" android:textSize="13sp" android:layout_marginTop="2dp"/>
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="vertical" android:background="@drawable/card_bg" android:layout_marginTop="15dp" android:padding="12dp" android:elevation="4dp">
@@ -142,14 +142,15 @@ jobs:
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Auto Permission Strip -->
             <LinearLayout android:id="@+id/panel_saf_request" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:background="#FFF3E0" android:padding="12dp" android:visibility="gone">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="⚠️ Android Restrictions Detected" android:textColor="#E65100" android:textStyle="bold" android:textSize="14sp"/>
+                    android:text="🔒 Storage Permission Required" android:textColor="#E65100" android:textStyle="bold" android:textSize="14sp"/>
                 <TextView android:id="@+id/tv_saf_message" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="To modify files inside Android/data or obb, please grant access." android:textColor="#5D4037" android:textSize="12sp" android:layout_marginTop="4dp"/>
+                    android:text="Click below to automatically target and unlock Android/data." android:textColor="#5D4037" android:textSize="12sp" android:layout_marginTop="4dp"/>
                 <Button android:id="@+id/btn_grant_saf" android:layout_width="wrap_content" android:layout_height="35dp"
-                    android:text="GRANT SPECIAL ACCESS" android:textSize="11sp" android:layout_marginTop="8dp" android:backgroundTint="#E65100" android:textColor="#FFFFFF"/>
+                    android:text="AUTO UNLOCK DATA" android:textSize="11sp" android:layout_marginTop="8dp" android:backgroundTint="#E65100" android:textColor="#FFFFFF"/>
             </LinearLayout>
 
             <RelativeLayout android:id="@+id/panel_paste" android:layout_width="match_parent" android:layout_height="50dp"
@@ -188,7 +189,7 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 7. MainActivity Java Implementation (FIXED: List index syntax compilation error)
+        # 7. MainActivity Java Implementation (With Auto Document Tree Uri Router)
         cat << 'EOF' > app/src/main/java/com/fastchat/filemanager/MainActivity.java
         package com.fastchat.filemanager;
 
@@ -220,10 +221,6 @@ jobs:
         import androidx.recyclerview.widget.LinearLayoutManager;
         import androidx.recyclerview.widget.RecyclerView;
         import java.io.File;
-        import java.io.FileInputStream;
-        import java.io.FileOutputStream;
-        import java.io.InputStream;
-        import java.io.OutputStream;
         import java.util.ArrayList;
         import java.util.Arrays;
         import java.util.List;
@@ -322,9 +319,11 @@ jobs:
                     for (DocumentFile doc : docList) itemsList.add(new UnifiedItem(doc));
                     rvFiles.setAdapter(new FileAdapter());
                 } else {
-                    tvSafMessage.setText("SkyFiles needs structural authority to unlock Android/" + targetType + " folder modification.");
+                    // ZArchiver Bypass Auto-Prompt Hook
+                    tvSafMessage.setText("SkyFiles will now automatically map the Android/" + targetType + " root folder for you.");
                     panelSafRequest.setVisibility(View.VISIBLE);
                     rvFiles.setAdapter(null);
+                    triggerSAFPermissionRequest(); // Trigger right away automatically!
                 }
             }
 
@@ -332,13 +331,20 @@ jobs:
                 String targetType = currentDir.getAbsolutePath().endsWith("data") ? "data" : "obb";
                 int requestCode = targetType.equals("data") ? SAF_DATA_CODE : SAF_OBB_CODE;
                 
+                // Pure deep Uri mapping to enforce system file manager to open EXACTLY inside Android/data or obb
                 String authority = "com.android.externalstorage.documents";
                 String documentId = "primary:Android/" + targetType;
                 Uri uri = Uri.parse("content://" + authority + "/tree/" + Uri.encode(documentId) + "/document/" + Uri.encode(documentId));
                 
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                 intent.putExtra("android.provider.extra.INITIAL_URI", uri);
-                startActivityForResult(intent, requestCode);
+                intent.putExtra("android.content.extra.SHOW_ADVANCED", true);
+                
+                try {
+                    startActivityForResult(intent, requestCode);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Please select Android -> " + targetType + " manually", Toast.LENGTH_LONG).show();
+                }
             }
 
             @Override
@@ -363,17 +369,16 @@ jobs:
 
                 @Override
                 public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-                    // FIXED HERE: Using itemsList.get(position) instead of array bracket indexing []
                     UnifiedItem item = itemsList.get(position);
                     holder.tvName.setText(item.getName());
                     holder.ivIcon.setText(item.isDirectory() ? "📁" : "📄");
-                    holder.tvDetails.setText(item.isDirectory() ? "Directory Folder" : (item.length() / 1024) + " KB");
+                    holder.tvDetails.setText(item.isDirectory() ? "Directory" : (item.length() / 1024) + " KB");
 
                     holder.itemView.setOnClickListener(v -> {
                         if (item.isDirectory() && !item.isSAF) {
                             loadDirectory(item.normalFile);
                         } else if (item.isSAF && item.isDirectory()) {
-                            Toast.makeText(MainActivity.this, "Deep nested SAF modification enabled!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "Inside Secure Cache Directory", Toast.LENGTH_SHORT).show();
                         }
                     });
 
@@ -520,7 +525,7 @@ jobs:
         </resources>
         EOF
 
-        # 9. App-Level build.gradle (Ensures correct AndroidX & SDK targets)
+        # 9. App-Level build.gradle
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -552,5 +557,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: SkyFiles-DataOBB-Fixed
+        name: SkyFiles-AutoDetect-Engine
         path: app/build/outputs/apk/debug/app-debug.apk
