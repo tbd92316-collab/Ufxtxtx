@@ -56,14 +56,17 @@ jobs:
         }
         EOF
 
-        # 4. Android Manifest with Proper Permissions & Style Theme
+        # 4. Android Manifest with Correct Permissions & Application Theme
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fastchat.dualspace">
             
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
             <uses-permission android:name="android.permission.INTERNET" />
 
-            <application android:label="Floating Dual Space" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <application 
+                android:label="Floating Dual Space" 
+                android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+                android:hardwareAccelerated="true">
                 
                 <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
@@ -78,7 +81,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. MainActivity (With Context Theme Wrapper for safe Inflation)
+        # 5. MainActivity (Starts Service safely)
         cat << 'EOF' > app/src/main/java/com/fastchat/dualspace/MainActivity.java
         package com.fastchat.dualspace;
 
@@ -105,7 +108,7 @@ jobs:
                 layout.setGravity(Gravity.CENTER);
 
                 Button btnStart = new Button(this);
-                btnStart.setText("Open Floating Browser");
+                btnStart.setText("Launch Floating Browser Space");
                 layout.addView(btnStart);
                 
                 setContentView(layout);
@@ -133,36 +136,36 @@ jobs:
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                         startFloatingSpace();
                     } else {
-                        Toast.makeText(this, "Permission required!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Permission required for floating system!", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
         }
         EOF
 
-        # 6. Floating Window Service (Context Inflation Fix)
+        # 6. Floating Window Service (Pure Programmatic View Generation - Crash Proof)
         cat << 'EOF' > app/src/main/java/com/fastchat/dualspace/FloatingWindowService.java
         package com.fastchat.dualspace;
 
         import android.app.Service;
         import android.content.Context;
         import android.content.Intent;
+        import android.graphics.Color;
         import android.graphics.PixelFormat;
         import android.os.Build;
         import android.os.IBinder;
-        import android.view.ContextThemeWrapper;
         import android.view.Gravity;
-        import android.view.LayoutInflater;
         import android.view.MotionEvent;
         import android.view.View;
         import android.view.WindowManager;
         import android.webkit.WebView;
         import android.webkit.WebViewClient;
         import android.widget.Button;
+        import android.widget.LinearLayout;
 
         public class FloatingWindowService extends Service {
             private WindowManager mWindowManager;
-            private View mFloatingView;
+            private LinearLayout mFloatingView;
 
             @Override
             public IBinder onBind(Intent intent) {
@@ -173,11 +176,53 @@ jobs:
             public void onCreate() {
                 super.onCreate();
                 mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-                
-                // Fix: Wrapper to prevent theme inflation crashes inside Service
-                ContextThemeWrapper contextWrapper = new ContextThemeWrapper(this, R.style.Theme_AppCompat_Light_NoActionBar);
-                mFloatingView = LayoutInflater.from(contextWrapper).inflate(R.layout.floating_layout, null);
 
+                // Pure Java Context Wrapper Architecture to totally bypass Layout XML inflation crashes
+                Context context = getApplicationContext();
+                mFloatingView = new LinearLayout(context);
+                mFloatingView.setOrientation(LinearLayout.VERTICAL);
+                mFloatingView.setBackgroundColor(Color.parseColor("#222222"));
+
+                // 1. Header Layout (Drag Bar)
+                LinearLayout header = new LinearLayout(context);
+                header.setOrientation(LinearLayout.HORIZONTAL);
+                header.setBackgroundColor(Color.parseColor("#333333"));
+                header.setPadding(10, 10, 10, 10);
+                
+                LinearLayout.LayoutParams headerParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 90);
+                header.setLayoutParams(headerParams);
+
+                // Empty space to push close button to right side
+                View spacer = new View(context);
+                LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f);
+                spacer.setLayoutParams(spacerParams);
+                header.addView(spacer);
+
+                // Close Button
+                Button btnClose = new Button(context);
+                btnClose.setText("X");
+                btnClose.setTextColor(Color.WHITE);
+                btnClose.setBackgroundColor(Color.RED);
+                LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(100, LinearLayout.LayoutParams.MATCH_PARENT);
+                btnClose.setLayoutParams(btnParams);
+                header.addView(btnClose);
+
+                mFloatingView.addView(header);
+
+                // 2. Crash-Proof WebView Layer setup
+                WebView webView = new WebView(context);
+                LinearLayout.LayoutParams webParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
+                webView.setLayoutParams(webParams);
+                webView.setWebViewClient(new WebViewClient());
+                webView.getSettings().setJavaScriptEnabled(true);
+                webView.getSettings().setDomStorageEnabled(true);
+                webView.loadUrl("https://www.google.com");
+
+                mFloatingView.addView(webView);
+
+                // 3. Window Manager System Overlay flags assignment
                 int layoutFlag;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -186,8 +231,8 @@ jobs:
                 }
 
                 final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.WRAP_CONTENT,
-                        WindowManager.LayoutParams.WRAP_CONTENT,
+                        800,
+                        1100,
                         layoutFlag,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT);
@@ -195,18 +240,12 @@ jobs:
                 params.gravity = Gravity.TOP | Gravity.START;
                 params.x = 100;
                 params.y = 100;
-                params.width = 800;
-                params.height = 1100;
 
-                WebView webView = mFloatingView.findViewById(R.id.floating_webview);
-                webView.setWebViewClient(new WebViewClient());
-                webView.getSettings().setJavaScriptEnabled(true);
-                webView.loadUrl("https://www.google.com"); 
-
-                Button btnClose = mFloatingView.findViewById(R.id.btn_close_floating);
+                // Close action execution
                 btnClose.setOnClickListener(v -> stopSelf());
 
-                mFloatingView.findViewById(R.id.floating_header).setOnTouchListener(new View.OnTouchListener() {
+                // Touch listener configuration for perfect moving functionality
+                header.setOnTouchListener(new View.OnTouchListener() {
                     private int initialX;
                     private int initialY;
                     private float initialTouchX;
@@ -237,32 +276,17 @@ jobs:
             @Override
             public void onDestroy() {
                 super.onDestroy();
-                if (mFloatingView != null) mWindowManager.removeView(mFloatingView);
+                if (mFloatingView != null) {
+                    mWindowManager.removeView(mFloatingView);
+                }
             }
         }
         EOF
 
-        # 7. Floating Layout View
-        cat << 'EOF' > app/src/main/res/layout/floating_layout.xml
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:background="#222222">
-            
-            <LinearLayout android:id="@+id/floating_header" android:layout_width="match_parent"
-                android:layout_height="45dp" android:background="#333333" android:orientation="horizontal" android:padding="5dp">
-                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
-                <Button android:id="@+id/btn_close_floating" android:layout_width="60dp"
-                    android:layout_height="match_parent" android:text="X" android:backgroundTint="#FF3333" android:textColor="#FFFFFF"/>
-            </LinearLayout>
-
-            <WebView android:id="@+id/floating_webview" android:layout_width="match_parent" android:layout_height="match_parent" />
-        </LinearLayout>
-        EOF
-
-        # Fixed Real AppCompat Theme Styles (Prevents Theme Crash)
+        # 7. Material Themes configuration
         cat << 'EOF' > app/src/main/res/values/styles.xml
         <resources>
-            <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
+            <style name="Theme.MaterialComponents.Light.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar">
                 <item name="colorPrimary">#6200EE</item>
                 <item name="colorPrimaryDark">#3700B3</item>
                 <item name="colorAccent">#03DAC6</item>
@@ -270,7 +294,7 @@ jobs:
         </resources>
         EOF
 
-        # 8. App-Level build.gradle
+        # 8. App-Level build.gradle with Material Design elements
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -301,5 +325,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: CrashFree-Floating-Space
+        name: Stable-Floating-Space
         path: app/build/outputs/apk/debug/app-debug.apk
