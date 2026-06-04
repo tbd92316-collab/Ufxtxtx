@@ -1,4 +1,4 @@
-name: Build Premium Blue File Manager
+name: Build Flashlight Controller App
 
 on:
   push:
@@ -18,9 +18,9 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Directory Structure & Configuration
+    - name: ⚙️ Setup Directory Structure & Code Base
       run: |
-        mkdir -p app/src/main/java/com/fastchat/filemanager/
+        mkdir -p app/src/main/java/com/fastchat/flashlight/
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/res/drawable/
@@ -34,18 +34,11 @@ jobs:
         # 2. Settings.gradle
         cat << 'EOF' > settings.gradle
         pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
+            repositories { google(); mavenCentral(); gradlePluginPortal() }
         }
         dependencyResolutionManagement {
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
+            repositories { google(); mavenCentral() }
         }
         include ':app'
         EOF
@@ -57,20 +50,21 @@ jobs:
         }
         EOF
 
-        # 4. Android Manifest with Storage Permissions
+        # 4. AndroidManifest.xml (Camera and Flashlight permissions added)
         cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
-            xmlns:tools="http://schemas.android.com/tools"
-            package="com.fastchat.filemanager">
-            
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.fastchat.flashlight">
 
-            <application 
-                android:label="SkyFiles Pro" 
-                android:theme="@style/Theme.FileManager"
-                android:requestLegacyExternalStorage="true">
+            <uses-permission android:name="android.permission.CAMERA" />
+            <uses-permission android:name="android.permission.FLASHLIGHT" />
+            
+            <uses-feature android:name="android.hardware.camera" />
+            <uses-feature android:name="android.hardware.camera.flash" />
+
+            <application
+                android:label="⚡ Flash Pro Controller"
+                android:theme="@style/Theme.Flashlight"
+                android:icon="@mipmap/ic_launcher">
                 
                 <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
@@ -78,463 +72,288 @@ jobs:
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
-
             </application>
         </manifest>
         EOF
 
-        # 5. Advanced UI Drawables
-        cat << 'EOF' > app/src/main/res/drawable/header_gradient.xml
+        # Dummy Icon to prevent build failure
+        mkdir -p app/src/main/res/mipmap-hdpi
+        echo "" > app/src/main/res/mipmap-hdpi/ic_launcher.png
+
+        # 5. Background UI Drawable (Premium Dark Theme Layout)
+        cat << 'EOF' > app/src/main/res/drawable/main_bg.xml
         <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <gradient android:startColor="#0D47A1" android:endColor="#1976D2" android:angle="45"/>
-            <corners android:bottomLeftRadius="24dp" android:bottomRightRadius="24dp"/>
+            <gradient android:startColor="#0F172A" android:endColor="#1E293B" android:angle="90"/>
         </shape>
         EOF
 
-        cat << 'EOF' > app/src/main/res/drawable/card_bg.xml
+        cat << 'EOF' > app/src/main/res/drawable/button_circle.xml
         <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <solid android:color="#FFFFFF"/>
-            <corners android:radius="14dp"/>
+            <solid android:color="#334155"/>
+            <corners android:radius="100dp"/>
+            <stroke android:width="3dp" android:color="#38BDF8"/>
         </shape>
         EOF
 
-        cat << 'EOF' > app/src/main/res/drawable/progress_bg.xml
-        <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-            <item android:id="@android:id/background">
-                <shape><corners android:radius="6dp"/><solid android:color="#E3F2FD"/></shape>
-            </item>
-            <item android:id="@android:id/progress">
-                <clip>
-                    <shape><corners android:radius="6dp"/><solid android:color="#0D47A1"/></shape>
-                </clip>
-            </item>
-        </layer-list>
-        EOF
-
-        # 6. UI Layout with Auto-Detect Status Bar
+        # 6. UI Layout XML (activity_main.xml)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:background="#F8FAFC">
+            android:orientation="vertical" android:background="@drawable/main_bg"
+            android:padding="25dp" android:gravity="center_horizontal">
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="180dp"
-                android:background="@drawable/header_gradient" android:orientation="vertical" android:padding="20dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="⚡ FLASH PRO" android:textColor="#38BDF8" android:textSize="28sp"
+                android:textStyle="bold" android:layout_marginTop="20dp"/>
                 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="SkyFiles Pro" android:textColor="#FFFFFF" android:textSize="26sp" android:textStyle="bold"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Advanced Hardware Controller" android:textColor="#94A3B8" android:textSize="14sp"/>
+
+            <!-- Main Toggle Button -->
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1" android:gravity="center">
                 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="ZArchiver-Style Auto Detection Engine" android:textColor="#90CAF9" android:textSize="13sp" android:layout_marginTop="2dp"/>
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical" android:background="@drawable/card_bg" android:layout_marginTop="15dp" android:padding="12dp" android:elevation="4dp">
-                    
-                    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Device Storage" android:textColor="#0D47A1" android:textStyle="bold" android:textSize="13sp"/>
-                        <TextView android:id="@+id/tv_storage_ratio" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:layout_alignParentRight="true" android:text="Calculating..." android:textColor="#475569" android:textSize="12sp"/>
-                    </RelativeLayout>
-
-                    <ProgressBar android:id="@+id/storage_progress" style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="8dp"
-                        android:progress="0" android:progressDrawable="@drawable/progress_bg"/>
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Auto Permission Strip -->
-            <LinearLayout android:id="@+id/panel_saf_request" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical" android:background="#FFF3E0" android:padding="12dp" android:visibility="gone">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="🔒 Storage Permission Required" android:textColor="#E65100" android:textStyle="bold" android:textSize="14sp"/>
-                <TextView android:id="@+id/tv_saf_message" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Click below to automatically target and unlock Android/data." android:textColor="#5D4037" android:textSize="12sp" android:layout_marginTop="4dp"/>
-                <Button android:id="@+id/btn_grant_saf" android:layout_width="wrap_content" android:layout_height="35dp"
-                    android:text="AUTO UNLOCK DATA" android:textSize="11sp" android:layout_marginTop="8dp" android:backgroundTint="#E65100" android:textColor="#FFFFFF"/>
-            </LinearLayout>
-
-            <RelativeLayout android:id="@+id/panel_paste" android:layout_width="match_parent" android:layout_height="50dp"
-                android:background="#E3F2FD" android:paddingHorizontal="15dp" android:visibility="gone">
-                <TextView android:id="@+id/tv_clip_info" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:layout_centerVertical="true" android:text="File selected" android:textColor="#0D47A1" android:textStyle="bold"/>
-                <Button android:id="@+id/btn_paste" android:layout_width="wrap_content" android:layout_height="35dp"
-                    android:layout_alignParentRight="true" android:layout_centerVertical="true" android:text="PASTE HERE" android:textSize="12sp" android:backgroundTint="#0D47A1" android:textColor="#FFFFFF"/>
+                <ToggleButton android:id="@+id/btn_flash_toggle" android:layout_width="140dp" android:layout_height="140dp"
+                    android:background="@drawable/button_circle" android:textOn="ON" android:textOff="OFF"
+                    android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold"/>
             </RelativeLayout>
 
-            <TextView android:id="@+id/tv_current_path" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Storage Root" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="italic" android:padding="10dp" android:background="#F1F5F9"/>
+            <!-- Control Panel -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="#1E293B" android:padding="20dp"
+                android:layout_marginBottom="20dp">
 
-            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_files"
-                android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginHorizontal="8dp" android:padding="4dp"/>
+                <!-- Slider 1: Brightness Control -->
+                <TextView android:id="@+id/tv_brightness_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="💡 Brightness Level: 100%" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold"/>
+                
+                <SeekBar android:id="@+id/seek_brightness" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" android:layout_marginBottom="25dp" android:max="10" android:progress="10"/>
 
-        </LinearLayout>
-        EOF
+                <!-- Slider 2: Blinking / Strobe Speed -->
+                <TextView android:id="@+id/tv_speed_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="⏱️ Blinking Speed: Static (Always On)" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold"/>
+                
+                <SeekBar android:id="@+id/seek_speed" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" android:max="10" android:progress="0"/>
 
-        # Row Item XML
-        cat << 'EOF' > app/src/main/res/layout/file_row_item.xml
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent" android:layout_height="65dp"
-            android:orientation="horizontal" android:padding="12dp" android:gravity="center_vertical"
-            android:background="@drawable/card_bg" android:layout_marginVertical="4dp" android:elevation="1dp">
-            
-            <TextView android:id="@+id/iv_icon" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="📁" android:textSize="26sp" android:layout_marginRight="15dp"/>
-
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:id="@+id/tv_name" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Item Name" android:textColor="#1E293B" android:textSize="15sp" android:textStyle="bold" android:singleLine="true"/>
-                <TextView android:id="@+id/tv_details" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Details" android:textColor="#64748B" android:textSize="11sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
         </LinearLayout>
         EOF
 
-        # 7. MainActivity Java Implementation (With Auto Document Tree Uri Router)
-        cat << 'EOF' > app/src/main/java/com/fastchat/filemanager/MainActivity.java
-        package com.fastchat.filemanager;
+        # 7. Java Implementation (MainActivity.java with Real-time Threading)
+        cat << 'EOF' > app/src/main/java/com/fastchat/flashlight/MainActivity.java
+        package com.fastchat.flashlight;
 
         import android.Manifest;
-        import android.content.Intent;
+        import android.content.Context;
         import android.content.pm.PackageManager;
-        import android.net.Uri;
+        import android.hardware.camera2.CameraManager;
         import android.os.Build;
         import android.os.Bundle;
-        import android.os.Environment;
-        import android.os.StatFs;
-        import android.provider.Settings;
-        import android.view.LayoutInflater;
-        import android.view.View;
-        import android.view.ViewGroup;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import android.widget.ProgressBar;
-        import android.widget.RelativeLayout;
-        import android.widget.LinearLayout;
+        import android.widget.SeekBar;
         import android.widget.TextView;
         import android.widget.Toast;
+        import android.widget.ToggleButton;
         import androidx.annotation.NonNull;
-        import androidx.appcompat.app.AlertDialog;
         import androidx.appcompat.app.AppCompatActivity;
         import androidx.core.app.ActivityCompat;
         import androidx.core.content.ContextCompat;
-        import androidx.documentfile.provider.DocumentFile;
-        import androidx.recyclerview.widget.LinearLayoutManager;
-        import androidx.recyclerview.widget.RecyclerView;
-        import java.io.File;
-        import java.util.ArrayList;
-        import java.util.Arrays;
-        import java.util.List;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int PERM_CODE = 101;
-            private static final int SAF_DATA_CODE = 201;
-            private static final int SAF_OBB_CODE = 202;
+            private static final int CAMERA_REQ_CODE = 44;
+
+            private ToggleButton btnFlashToggle;
+            private SeekBar seekBrightness, seekSpeed;
+            private TextView tvBrightnessLabel, tvSpeedLabel;
+
+            private CameraManager cameraManager;
+            private String cameraId;
             
-            private RecyclerView rvFiles;
-            private TextView tvCurrentPath, tvStorageRatio, tvClipInfo, tvSafMessage;
-            private ProgressBar storageProgress;
-            private RelativeLayout panelPaste;
-            private LinearLayout panelSafRequest;
-            private Button btnPaste, btnGrantSaf;
-
-            private File currentDir;
-            private List<UnifiedItem> itemsList = new ArrayList<>();
-            private UnifiedItem clipboardItem = null; 
-
-            private static class UnifiedItem {
-                File normalFile;
-                DocumentFile safFile;
-                boolean isSAF;
-                
-                UnifiedItem(File file) { this.normalFile = file; this.isSAF = false; }
-                UnifiedItem(DocumentFile doc) { this.safFile = doc; this.isSAF = true; }
-
-                String getName() { return isSAF ? safFile.getName() : normalFile.getName(); }
-                boolean isDirectory() { return isSAF ? safFile.isDirectory() : normalFile.isDirectory(); }
-                long length() { return isSAF ? safFile.length() : normalFile.length(); }
-            }
+            private boolean isFlashOn = false;
+            private int brightnessLevel = 10; // Default max
+            private int blinkSpeed = 0;        // 0 means Static Always On
+            
+            private Thread blinkThread;
+            private volatile boolean isBlinkingRunning = false;
 
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                rvFiles = findViewById(R.id.rv_files);
-                tvCurrentPath = findViewById(R.id.tv_current_path);
-                tvStorageRatio = findViewById(R.id.tv_storage_ratio);
-                storageProgress = findViewById(R.id.storage_progress);
-                panelPaste = findViewById(R.id.panel_paste);
-                panelSafRequest = findViewById(R.id.panel_saf_request);
-                tvSafMessage = findViewById(R.id.tv_saf_message);
-                btnPaste = findViewById(R.id.btn_paste);
-                btnGrantSaf = findViewById(R.id.btn_grant_saf);
+                btnFlashToggle = findViewById(R.id.btn_flash_toggle);
+                seekBrightness = findViewById(R.id.seek_brightness);
+                seekSpeed = findViewById(R.id.seek_speed);
+                tvBrightnessLabel = findViewById(R.id.tv_brightness_label);
+                tvSpeedLabel = findViewById(R.id.tv_speed_label);
 
-                rvFiles.setLayoutManager(new LinearLayoutManager(this));
-
-                if (checkAndRequestPermissions()) {
-                    currentDir = Environment.getExternalStorageDirectory();
-                    loadDirectory(currentDir);
-                }
-
-                btnGrantSaf.setOnClickListener(v -> triggerSAFPermissionRequest());
-                btnPaste.setOnClickListener(v -> executePasteOperation());
-            }
-
-            private void loadDirectory(File directory) {
-                currentDir = directory;
-                tvCurrentPath.setText("Path: " + directory.getAbsolutePath());
-                panelSafRequest.setVisibility(View.GONE);
-                itemsList.clear();
-
-                String path = directory.getAbsolutePath();
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && (path.endsWith("Android/data") || path.endsWith("Android/obb"))) {
-                    handleRestrictedFolderListing(path);
-                    return;
-                }
-
-                File[] list = directory.listFiles();
-                if (list != null) {
-                    Arrays.sort(list, (f1, f2) -> {
-                        if (f1.isDirectory() && !f2.isDirectory()) return -1;
-                        if (!f1.isDirectory() && f2.isDirectory()) return 1;
-                        return f1.getName().compareToIgnoreCase(f2.getName());
-                    });
-                    for (File f : list) itemsList.add(new UnifiedItem(f));
-                }
-                rvFiles.setAdapter(new FileAdapter());
-                updateStorageDashboard();
-            }
-
-            private void handleRestrictedFolderListing(String path) {
-                String targetType = path.endsWith("data") ? "data" : "obb";
-                String authority = "com.android.externalstorage.documents";
-                String documentId = "primary:Android/" + targetType;
-                Uri treeUri = Uri.parse("content://" + authority + "/tree/" + Uri.encode(documentId));
-                
-                DocumentFile rootDoc = DocumentFile.fromTreeUri(this, treeUri);
-                
-                if (rootDoc != null && rootDoc.canRead()) {
-                    DocumentFile[] docList = rootDoc.listFiles();
-                    for (DocumentFile doc : docList) itemsList.add(new UnifiedItem(doc));
-                    rvFiles.setAdapter(new FileAdapter());
-                } else {
-                    // ZArchiver Bypass Auto-Prompt Hook
-                    tvSafMessage.setText("SkyFiles will now automatically map the Android/" + targetType + " root folder for you.");
-                    panelSafRequest.setVisibility(View.VISIBLE);
-                    rvFiles.setAdapter(null);
-                    triggerSAFPermissionRequest(); // Trigger right away automatically!
-                }
-            }
-
-            private void triggerSAFPermissionRequest() {
-                String targetType = currentDir.getAbsolutePath().endsWith("data") ? "data" : "obb";
-                int requestCode = targetType.equals("data") ? SAF_DATA_CODE : SAF_OBB_CODE;
-                
-                // Pure deep Uri mapping to enforce system file manager to open EXACTLY inside Android/data or obb
-                String authority = "com.android.externalstorage.documents";
-                String documentId = "primary:Android/" + targetType;
-                Uri uri = Uri.parse("content://" + authority + "/tree/" + Uri.encode(documentId) + "/document/" + Uri.encode(documentId));
-                
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                intent.putExtra("android.provider.extra.INITIAL_URI", uri);
-                intent.putExtra("android.content.extra.SHOW_ADVANCED", true);
-                
+                cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
                 try {
-                    startActivityForResult(intent, requestCode);
+                    String[] list = cameraManager.getCameraIdList();
+                    if (list.length > 0) cameraId = list[0]; // Back Camera Flash
                 } catch (Exception e) {
-                    Toast.makeText(this, "Please select Android -> " + targetType + " manually", Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                super.onActivityResult(requestCode, resultCode, data);
-                if ((requestCode == SAF_DATA_CODE || requestCode == SAF_OBB_CODE) && resultCode == RESULT_OK && data != null) {
-                    Uri uri = data.getData();
-                    if (uri != null) {
-                        getContentResolver().takePersistableUriPermission(uri, 
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        loadDirectory(currentDir); 
-                    }
-                }
-            }
-
-            private class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
-                @NonNull
-                @Override
-                public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                    return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.file_row_item, parent, false));
+                    Toast.makeText(this, "Hardware Flashlight not found!", Toast.LENGTH_SHORT).show();
                 }
 
-                @Override
-                public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-                    UnifiedItem item = itemsList.get(position);
-                    holder.tvName.setText(item.getName());
-                    holder.ivIcon.setText(item.isDirectory() ? "📁" : "📄");
-                    holder.tvDetails.setText(item.isDirectory() ? "Directory" : (item.length() / 1024) + " KB");
+                // Request Runtime Camera Permission
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQ_CODE);
+                }
 
-                    holder.itemView.setOnClickListener(v -> {
-                        if (item.isDirectory() && !item.isSAF) {
-                            loadDirectory(item.normalFile);
-                        } else if (item.isSAF && item.isDirectory()) {
-                            Toast.makeText(MainActivity.this, "Inside Secure Cache Directory", Toast.LENGTH_SHORT).show();
+                btnFlashToggle.setOnClickListener(v -> {
+                    isFlashOn = btnFlashToggle.isChecked();
+                    updateFlashState();
+                });
+
+                // Slider 1: Brightness Slider Logic
+                seekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        if (progress == 0) progress = 1; // Minimum level cannot be zero
+                        brightnessLevel = progress;
+                        tvBrightnessLabel.setText("💡 Brightness Level: " + (brightnessLevel * 10) + "%");
+                        if (isFlashOn && blinkSpeed == 0) {
+                            applyHardwareFlash(true);
                         }
-                    });
-
-                    holder.itemView.setOnLongClickListener(v -> {
-                        showModificationDialog(item);
-                        return true;
-                    });
-                }
-
-                @Override
-                public int getItemCount() { return itemsList.size(); }
-
-                class ViewHolder extends RecyclerView.ViewHolder {
-                    TextView ivIcon, tvName, tvDetails;
-                    ViewHolder(View itemView) {
-                        super(itemView);
-                        ivIcon = itemView.findViewById(R.id.iv_icon);
-                        tvName = itemView.findViewById(R.id.tv_name);
-                        tvDetails = itemView.findViewById(R.id.tv_details);
                     }
-                }
-            }
+                    @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                    @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+                });
 
-            private void showModificationDialog(UnifiedItem item) {
-                CharSequence[] options = {"📋 Copy Asset", "✏️ Rename / Edit", "🗑️ Delete Permanently"};
-                new AlertDialog.Builder(this)
-                    .setTitle("Modify: " + item.getName())
-                    .setItems(options, (dialog, selection) -> {
-                        if (selection == 0) { 
-                            clipboardItem = item;
-                            panelPaste.setVisibility(View.VISIBLE);
-                            tvClipInfo.setText("Buffer: " + item.getName());
-                        } else if (selection == 1) { 
-                            showRenameDialog(item);
-                        } else if (selection == 2) { 
-                            executeDeletion(item);
-                        }
-                    }).show();
-            }
-
-            private void showRenameDialog(UnifiedItem item) {
-                EditText input = new EditText(this);
-                input.setText(item.getName());
-                new AlertDialog.Builder(this)
-                    .setTitle("Edit Name")
-                    .setView(input)
-                    .setPositiveButton("Save", (dialog, w) -> {
-                        String newName = input.getText().toString();
-                        if (item.isSAF) {
-                            item.safFile.renameTo(newName);
+                // Slider 2: Blinking Speed Slider Logic
+                seekSpeed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        blinkSpeed = progress;
+                        if (blinkSpeed == 0) {
+                            tvSpeedLabel.setText("⏱️ Blinking Speed: Static (Always On)");
                         } else {
-                            File dest = new File(item.normalFile.getParentFile(), newName);
-                            item.normalFile.renameTo(dest);
+                            tvSpeedLabel.setText("⏱️ Blinking Speed Level: " + blinkSpeed + " Hz");
                         }
-                        loadDirectory(currentDir);
-                        Toast.makeText(this, "Modification successful", Toast.LENGTH_SHORT).show();
-                    }).setNegativeButton("Cancel", null).show();
-            }
-
-            private void executeDeletion(UnifiedItem item) {
-                if (item.isSAF) {
-                    item.safFile.delete();
-                } else {
-                    deleteRecursive(item.normalFile);
-                }
-                loadDirectory(currentDir);
-                Toast.makeText(this, "Removed successfully", Toast.LENGTH_SHORT).show();
-            }
-
-            private void executePasteOperation() {
-                if (clipboardItem != null) {
-                    Toast.makeText(this, "Processing modification streams...", Toast.LENGTH_SHORT).show();
-                    panelPaste.setVisibility(View.GONE);
-                    clipboardItem = null;
-                    loadDirectory(currentDir);
-                }
-            }
-
-            private void deleteRecursive(File fileOrDirectory) {
-                if (fileOrDirectory.isDirectory() && fileOrDirectory.listFiles() != null) {
-                    for (File child : fileOrDirectory.listFiles()) deleteRecursive(child);
-                }
-                fileOrDirectory.delete();
-            }
-
-            private boolean checkAndRequestPermissions() {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    if (!Environment.isExternalStorageManager()) {
-                        try {
-                            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                            intent.setData(Uri.parse("package:" + getPackageName()));
-                            startActivityForResult(intent, PERM_CODE);
-                        } catch (Exception e) {
-                            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                            startActivityForResult(intent, PERM_CODE);
+                        if (isFlashOn) {
+                            updateFlashState(); // Reset toggle streams
                         }
-                        return false;
                     }
-                    return true;
+                    @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                    @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+                });
+            }
+
+            private void updateFlashState() {
+                if (!isFlashOn) {
+                    stopBlinkingEngine();
+                    applyHardwareFlash(false);
                 } else {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERM_CODE);
-                        return false;
+                    if (blinkSpeed == 0) {
+                        stopBlinkingEngine();
+                        applyHardwareFlash(true);
+                    } else {
+                        startBlinkingEngine();
                     }
-                    return true;
                 }
             }
 
-            private void updateStorageDashboard() {
+            private void applyHardwareFlash(boolean status) {
+                if (cameraId == null) return;
                 try {
-                    File path = Environment.getExternalStorageDirectory();
-                    StatFs stat = new StatFs(path.getPath());
-                    long totalBytes = stat.getBlockCountLong() * stat.getBlockSizeLong();
-                    long availableBytes = stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-                    long usedBytes = totalBytes - availableBytes;
-                    double totalGB = totalBytes / (1024.0 * 1024.0 * 1024.0);
-                    double usedGB = usedBytes / (1024.0 * 1024.0 * 1024.0);
-                    int pct = (totalGB > 0) ? (int)(usedGB * 100 / totalGB) : 0;
-                    if (storageProgress != null) storageProgress.setProgress(pct);
-                    if (tvStorageRatio != null) tvStorageRatio.setText(String.format("%.1f GB / %.1f GB (%d%%)", usedGB, totalGB, pct));
-                } catch (Exception e) {}
+                    if (status) {
+                        // If phone supports Brightness control (Android 13+)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            try {
+                                int maxLevel = cameraManager.getCameraCharacteristics(cameraId)
+                                        .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_STRENGTH_MAX_LEVEL);
+                                if (maxLevel > 1) {
+                                    int calculatedStrength = (int) ((brightnessLevel / 10.0) * maxLevel);
+                                    if (calculatedStrength < 1) calculatedStrength = 1;
+                                    cameraManager.turnOnTorchWithStrengthLevel(cameraId, calculatedStrength);
+                                    return;
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                        // Standard On if strength control not available
+                        cameraManager.setTorchMode(cameraId, true);
+                    } else {
+                        cameraManager.setTorchMode(cameraId, false);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            private void startBlinkingEngine() {
+                stopBlinkingEngine(); // clear existing thread if running
+                isBlinkingRunning = true;
+                blinkThread = new Thread(() -> {
+                    while (isBlinkingRunning) {
+                        try {
+                            applyHardwareFlash(true);
+                            // Higher seek value means shorter sleep -> faster blinking
+                            long sleepTime = 600 / blinkSpeed; 
+                            Thread.sleep(sleepTime);
+                            applyHardwareFlash(false);
+                            Thread.sleep(sleepTime);
+                        } catch (InterruptedException e) {
+                            break;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                blinkThread.start();
+            }
+
+            private void stopBlinkingEngine() {
+                isBlinkingRunning = false;
+                if (blinkThread != null) {
+                    blinkThread.interrupt();
+                    blinkThread = null;
+                }
             }
 
             @Override
-            public void onBackPressed() {
-                if (currentDir != null && !currentDir.getAbsolutePath().equals(Environment.getExternalStorageDirectory().getAbsolutePath())) {
-                    loadDirectory(currentDir.getParentFile());
-                } else {
-                    super.onBackPressed();
+            public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] results) {
+                super.onRequestPermissionsResult(code, perms, results);
+                if (code == CAMERA_REQ_CODE && results.length > 0 && results[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Camera permission required for flash control!", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            protected void onPause() {
+                super.onPause();
+                // Turn off safely when leaving app to prevent overheating
+                if (isFlashOn) {
+                    btnFlashToggle.setChecked(false);
+                    isFlashOn = false;
+                    updateFlashState();
                 }
             }
         }
         EOF
 
-        # 8. Styles configuration
+        # 8. Color Themes & Styles
         cat << 'EOF' > app/src/main/res/values/styles.xml
         <resources>
-            <style name="Theme.FileManager" parent="Theme.MaterialComponents.Light.NoActionBar">
-                <item name="colorPrimary">#0D47A1</item>
-                <item name="colorPrimaryDark">#0A3982</item>
-                <item name="colorAccent">#1976D2</item>
-                <item name="android:statusBarColor">#0D47A1</item>
+            <style name="Theme.Flashlight" parent="Theme.MaterialComponents.Light.NoActionBar">
+                <item name="colorPrimary">#0F172A</item>
+                <item name="colorPrimaryDark">#020617</item>
+                <item name="colorAccent">#38BDF8</item>
+                <item name="android:statusBarColor">#0F172A</item>
             </style>
         </resources>
         EOF
 
-        # 9. App-Level build.gradle
+        # 9. App-Level build.gradle Configuration
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
         }
         android {
-            namespace 'com.fastchat.filemanager'
+            namespace 'com.fastchat.flashlight'
             compileSdk 34
             defaultConfig {
-                applicationId 'com.fastchat.filemanager'
+                applicationId 'com.fastchat.flashlight'
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -544,7 +363,6 @@ jobs:
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
-            implementation 'androidx.recyclerview:recyclerview:1.3.2'
         }
         EOF
 
@@ -557,5 +375,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: SkyFiles-AutoDetect-Engine
+        name: Flash-Pro-Controller
         path: app/build/outputs/apk/debug/app-debug.apk
