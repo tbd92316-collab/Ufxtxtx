@@ -25,7 +25,7 @@ jobs:
         mkdir -p app/src/main/res/values/
         mkdir -p app/src/main/res/drawable/
 
-        # 1. Gradle Properties
+        # 1. Gradle Properties (Enabling AndroidX to fix your library errors)
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
@@ -57,7 +57,7 @@ jobs:
         }
         EOF
 
-        # 4. Android Manifest with All Modern Storage Permissions
+        # 4. Android Manifest with Storage Permissions
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
             xmlns:tools="http://schemas.android.com/tools"
@@ -117,7 +117,6 @@ jobs:
             android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="vertical" android:background="#F8FAFC">
 
-            <!-- Premium Gradient Header -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="180dp"
                 android:background="@drawable/header_gradient" android:orientation="vertical" android:padding="20dp">
                 
@@ -127,7 +126,6 @@ jobs:
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="Data &amp; OBB Advanced Modifier Engine" android:textColor="#90CAF9" android:textSize="13sp" android:layout_marginTop="2dp"/>
 
-                <!-- Storage Information Box -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="vertical" android:background="@drawable/card_bg" android:layout_marginTop="15dp" android:padding="12dp" android:elevation="4dp">
                     
@@ -144,7 +142,6 @@ jobs:
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- SAF Special Access Request Panel -->
             <LinearLayout android:id="@+id/panel_saf_request" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:background="#FFF3E0" android:padding="12dp" android:visibility="gone">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -155,7 +152,6 @@ jobs:
                     android:text="GRANT SPECIAL ACCESS" android:textSize="11sp" android:layout_marginTop="8dp" android:backgroundTint="#E65100" android:textColor="#FFFFFF"/>
             </LinearLayout>
 
-            <!-- Copy Paste Operation Bar -->
             <RelativeLayout android:id="@+id/panel_paste" android:layout_width="match_parent" android:layout_height="50dp"
                 android:background="#E3F2FD" android:paddingHorizontal="15dp" android:visibility="gone">
                 <TextView android:id="@+id/tv_clip_info" android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -164,11 +160,9 @@ jobs:
                     android:layout_alignParentRight="true" android:layout_centerVertical="true" android:text="PASTE HERE" android:textSize="12sp" android:backgroundTint="#0D47A1" android:textColor="#FFFFFF"/>
             </RelativeLayout>
 
-            <!-- Current Path Display -->
             <TextView android:id="@+id/tv_current_path" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="Storage Root" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="italic" android:padding="10dp" android:background="#F1F5F9"/>
 
-            <!-- RecyclerView Explorer -->
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_files"
                 android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginHorizontal="8dp" android:padding="4dp"/>
 
@@ -194,7 +188,7 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 7. MainActivity Java Implementation with SAF Hybrid Engine for Data/OBB Bypass
+        # 7. MainActivity Java Implementation (FIXED: List index syntax compilation error)
         cat << 'EOF' > app/src/main/java/com/fastchat/filemanager/MainActivity.java
         package com.fastchat.filemanager;
 
@@ -250,7 +244,6 @@ jobs:
             private List<UnifiedItem> itemsList = new ArrayList<>();
             private UnifiedItem clipboardItem = null; 
 
-            // Wrapper class to handle both Normal Files and Restricted SAF DocumentFiles seamlessly
             private static class UnifiedItem {
                 File normalFile;
                 DocumentFile safFile;
@@ -298,13 +291,11 @@ jobs:
 
                 String path = directory.getAbsolutePath();
                 
-                // Detect Restricted Android/data or Android/obb Paths
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && (path.endsWith("Android/data") || path.endsWith("Android/obb"))) {
                     handleRestrictedFolderListing(path);
                     return;
                 }
 
-                // Normal standard directory scanning
                 File[] list = directory.listFiles();
                 if (list != null) {
                     Arrays.sort(list, (f1, f2) -> {
@@ -358,7 +349,7 @@ jobs:
                     if (uri != null) {
                         getContentResolver().takePersistableUriPermission(uri, 
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        loadDirectory(currentDir); // Refresh
+                        loadDirectory(currentDir); 
                     }
                 }
             }
@@ -372,7 +363,8 @@ jobs:
 
                 @Override
                 public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-                    UnifiedItem item = itemsList[position];
+                    // FIXED HERE: Using itemsList.get(position) instead of array bracket indexing []
+                    UnifiedItem item = itemsList.get(position);
                     holder.tvName.setText(item.getName());
                     holder.ivIcon.setText(item.isDirectory() ? "📁" : "📄");
                     holder.tvDetails.setText(item.isDirectory() ? "Directory Folder" : (item.length() / 1024) + " KB");
@@ -410,13 +402,13 @@ jobs:
                 new AlertDialog.Builder(this)
                     .setTitle("Modify: " + item.getName())
                     .setItems(options, (dialog, selection) -> {
-                        if (selection == 0) { // Copy
+                        if (selection == 0) { 
                             clipboardItem = item;
                             panelPaste.setVisibility(View.VISIBLE);
                             tvClipInfo.setText("Buffer: " + item.getName());
-                        } else if (selection == 1) { // Rename
+                        } else if (selection == 1) { 
                             showRenameDialog(item);
-                        } else if (selection == 2) { // Delete
+                        } else if (selection == 2) { 
                             executeDeletion(item);
                         }
                     }).show();
@@ -454,7 +446,6 @@ jobs:
             private void executePasteOperation() {
                 if (clipboardItem != null) {
                     Toast.makeText(this, "Processing modification streams...", Toast.LENGTH_SHORT).show();
-                    // Advanced stream routines paste here
                     panelPaste.setVisibility(View.GONE);
                     clipboardItem = null;
                     loadDirectory(currentDir);
@@ -517,7 +508,7 @@ jobs:
         }
         EOF
 
-        # Styles configuration
+        # 8. Styles configuration
         cat << 'EOF' > app/src/main/res/values/styles.xml
         <resources>
             <style name="Theme.FileManager" parent="Theme.MaterialComponents.Light.NoActionBar">
@@ -529,7 +520,7 @@ jobs:
         </resources>
         EOF
 
-        # 8. App-Level build.gradle
+        # 9. App-Level build.gradle (Ensures correct AndroidX & SDK targets)
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -552,7 +543,7 @@ jobs:
         }
         EOF
 
-    - name: 🏗️ Build Data-OBB Modifier App
+    - name: 🏗️ Create Gradle Wrapper & Run Build
       run: |
         gradle wrapper --gradle-version 8.4
         chmod +x gradlew
@@ -561,5 +552,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: SkyFiles-DataOBB-Bypass
+        name: SkyFiles-DataOBB-Fixed
         path: app/build/outputs/apk/debug/app-debug.apk
