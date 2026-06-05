@@ -23,7 +23,6 @@ jobs:
         mkdir -p src/main/java/com/fastchat/recorder/
         mkdir -p src/main/res/layout/
         mkdir -p src/main/res/values/
-        mkdir -p src/main/res/drawable/
         mkdir -p src/main/assets/
 
         # 1. Gradle Properties
@@ -44,7 +43,7 @@ jobs:
         rootProject.name = "AdvancedRecorder"
         EOF
 
-        # 3. Build.gradle (Direct root config)
+        # 3. Build.gradle (Stable Target Configurations)
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2'
@@ -68,16 +67,13 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (All required permissions for advanced recording)
+        # 4. AndroidManifest.xml (Proper Foreground Service Types Declarations)
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
             <application
                 android:label="🛡️ Ultra Recorder Pro"
@@ -101,7 +97,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (Simple, modern, and clean single-screen UI)
+        # 5. UI Layout (Simple Android layout config)
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -139,8 +135,7 @@ jobs:
                 android:background="#1e293b"
                 android:padding="16dp"
                 android:layout_below="@id/txt_status"
-                android:layout_marginTop="40dp"
-                android:elevation="4dp">
+                android:layout_marginTop="40dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -153,7 +148,7 @@ jobs:
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="This app uses direct MediaProjection hardware buffers. Note: For extremely high-secure apps like Netflix, make sure to disable HW Overlays in Developer Options or use Shizuku/Root mode to bypass system-level FLAG_SECURE flags completely."
+                    android:text="If premium streaming apps show black screen due to OS constraints, enable 'Disable HW Overlays' in developer options to force hardware layer capturing."
                     android:textColor="#94a3b8"
                     android:textSize="13sp"
                     android:layout_marginTop="6dp"/>
@@ -173,20 +168,10 @@ jobs:
                 android:insetBottom="0dp"
                 android:gravity="center" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔒 Simple UI • Advanced Virtual Display Technology"
-                android:textColor="#64748b"
-                android:textSize="12sp"
-                android:layout_alignParentBottom="true"
-                android:layout_centerHorizontal="true"
-                android:layout_marginBottom="10dp"/>
-
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java (Handles background high-performance recording)
+        # 6. RecordService.java (CRASH FIX: Instant notification deployment inside onCreate)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
         package com.fastchat.recorder;
 
@@ -196,13 +181,13 @@ jobs:
         import android.app.Service;
         import android.content.Context;
         import android.content.Intent;
+        import android.content.pm.ServiceInfo;
         import android.hardware.display.DisplayManager;
         import android.hardware.display.VirtualDisplay;
         import android.media.MediaRecorder;
         import android.media.projection.MediaProjection;
         import android.media.projection.MediaProjectionManager;
         import android.os.Build;
-        import android.os.Environment;
         import android.os.IBinder;
         import android.util.DisplayMetrics;
         import android.view.WindowManager;
@@ -223,27 +208,36 @@ jobs:
             public void onCreate() {
                 super.onCreate();
                 createNotificationChannel();
+                
                 Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                         .setContentTitle("Ultra Recorder Running")
-                        .setContentText("Recording screen with active bypass technology...")
+                        .setContentText("Bypass screen processing active...")
                         .setSmallIcon(android.R.drawable.presence_video_online)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setCategory(Notification.CATEGORY_SERVICE)
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
                         .build();
-                startForeground(101, notification);
+
+                // CRASH FIX: Immediate foreground attachment with explicit target service types
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+                } else {
+                    startForeground(101, notification);
+                }
             }
 
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
+                if (intent == null) return START_NOT_STICKY;
+                
                 int resultCode = intent.getIntExtra("resultCode", -1);
                 Intent data = intent.getParcelableExtra("data");
 
                 if (resultCode != -1 && data != null) {
                     MediaProjectionManager mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-                    mediaProjection = mpManager.getMediaProjection(resultCode, data);
-                    
-                    setupRecorder();
-                    startRecording();
+                    if (mpManager != null) {
+                        mediaProjection = mpManager.getMediaProjection(resultCode, data);
+                        setupRecorder();
+                        startRecording();
+                    }
                 }
                 return START_NOT_STICKY;
             }
@@ -254,15 +248,14 @@ jobs:
                 mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
                 mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
 
-                File file = new File(getExternalFilesDir(null), "Bypass_Record_" + System.currentTimeMillis() + ".mp4");
+                File file = new File(getExternalFilesDir(null), "Screen_Record_" + System.currentTimeMillis() + ".mp4");
                 mediaRecorder.setOutputFile(file.getAbsolutePath());
                 
-                // Advanced high-bitrate encoding configuration
                 mediaRecorder.setVideoSize(1280, 720);
                 mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
                 mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-                mediaRecorder.setVideoEncodingBitRate(8000000); // 8Mbps high clarity
-                mediaRecorder.setVideoFrameRate(60); // 60 FPS smooth gameplay/videos
+                mediaRecorder.setVideoEncodingBitRate(6000000);
+                mediaRecorder.setVideoFrameRate(30);
 
                 try {
                     mediaRecorder.prepare();
@@ -274,22 +267,26 @@ jobs:
             private void startRecording() {
                 WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
                 DisplayMetrics metrics = new DisplayMetrics();
-                windowManager.getDefaultDisplay().getMetrics(metrics);
-
-                // Creating advanced hardware virtual display to receive buffers
-                virtualDisplay = mediaProjection.createVirtualDisplay(
-                        "BypassDisplay", 1280, 720, metrics.densityDpi,
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                        mediaRecorder.getSurface(), null, null
-                );
-                mediaRecorder.start();
+                if (windowManager != null) {
+                    windowManager.getDefaultDisplay().getMetrics(metrics);
+                    virtualDisplay = mediaProjection.createVirtualDisplay(
+                            "BypassDisplay", 1280, 720, metrics.densityDpi,
+                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                            mediaRecorder.getSurface(), null, null
+                    );
+                    try {
+                        mediaRecorder.start();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
             private void createNotificationChannel() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     NotificationChannel serviceChannel = new NotificationChannel(
-                            CHANNEL_ID, "Screen Recorder Service",
-                            NotificationManager.IMPORTANCE_DEFAULT
+                            CHANNEL_ID, "Screen Recorder Channel",
+                            NotificationManager.IMPORTANCE_HIGH
                     );
                     NotificationManager manager = getSystemService(NotificationManager.class);
                     if (manager != null) manager.createNotificationChannel(serviceChannel);
@@ -299,18 +296,22 @@ jobs:
             @Override
             public void onDestroy() {
                 super.onDestroy();
-                if (mediaRecorder != null) {
-                    try { mediaRecorder.stop(); } catch(Exception e){}
-                    mediaRecorder.reset();
-                    mediaRecorder.release();
+                try {
+                    if (mediaRecorder != null) {
+                        mediaRecorder.stop();
+                        mediaRecorder.reset();
+                        mediaRecorder.release();
+                    }
+                    if (virtualDisplay != null) virtualDisplay.release();
+                    if (mediaProjection != null) mediaProjection.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                if (virtualDisplay != null) virtualDisplay.release();
-                if (mediaProjection != null) mediaProjection.stop();
             }
         }
         EOF
 
-        # 7. MainActivity.java (Handles UI interactions and runtime permission logic)
+        # 7. MainActivity.java (Permission validation logic)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
         package com.fastchat.recorder;
 
@@ -362,9 +363,7 @@ jobs:
 
             private void checkAndRequestPermissions() {
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{
-                            Manifest.permission.RECORD_AUDIO
-                    }, PERMISSION_REQ_CODE);
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQ_CODE);
                 }
             }
 
@@ -377,7 +376,7 @@ jobs:
             @Override
             protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                 super.onActivityResult(requestCode, requestCode, data);
-                if (requestCode == SCREEN_RECORD_REQ_CODE && resultCode == RESULT_OK) {
+                if (requestCode == SCREEN_RECORD_REQ_CODE && resultCode == RESULT_OK && data != null) {
                     Intent serviceIntent = new Intent(this, RecordService.class);
                     serviceIntent.putExtra("resultCode", resultCode);
                     serviceIntent.putExtra("data", data);
@@ -390,9 +389,10 @@ jobs:
 
                     isRecording = true;
                     btnAction.setText("STOP\nRECORDING");
-                    btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E)); // Green
+                    btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
                     txtStatus.setText("Status: Recording Active 🟢");
-                    Toast.makeText(this, "Recording started successfully", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Permission denied by user", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -402,14 +402,14 @@ jobs:
                 
                 isRecording = false;
                 btnAction.setText("START\nRECORDING");
-                btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444)); // Red
-                txtStatus.setText("Status: Saved to App Private Folder");
-                Toast.makeText(this, "Recording saved successfully!", Toast.LENGTH_LONG).show();
+                btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444));
+                txtStatus.setText("Status: Recording Saved Successfully");
+                Toast.makeText(this, "File saved to app directory!", Toast.LENGTH_SHORT).show();
             }
         }
         EOF
 
-        # 8. Empty strings/resources to ensure standard build stability
+        # 8. Resources Setup
         cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">Ultra Recorder Pro</string></resources>
         EOF
