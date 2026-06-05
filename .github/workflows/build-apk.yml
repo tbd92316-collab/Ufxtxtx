@@ -100,24 +100,27 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. High-Graphics Realistic 3D Game Engine (Three.js WebGL)
+        # 6. Fetch Three.js and Embed it directly into assets for 100% Offline Support
+        curl -s https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js > src/main/assets/three.min.js
+
+        # 7. Offline High-Graphics Game HTML
         cat << 'EOF' > src/main/assets/game.html
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
             <style>
-                body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; }
-                canvas { display: block; width: 100vw; height: 100vh; }
+                body { margin: 0; overflow: hidden; background: #0f172a; font-family: sans-serif; user-select: none; }
+                canvas { display: block; width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index: 1; }
                 
                 .control-btn {
                     position: absolute; width: 85px; height: 85px;
-                    background: rgba(30, 41, 59, 0.7); border: 2px solid #38bdf8;
-                    border-radius: 50%; color: #fff; font-weight: bold; font-size: 18px;
+                    background: rgba(30, 41, 59, 0.8); border: 2px solid #38bdf8;
+                    border-radius: 50%; color: #fff; font-weight: bold; font-size: 22px;
                     display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+                    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); z-index: 10;
                 }
-                .control-btn:active { background: rgba(56, 189, 248, 0.5); }
+                .control-btn:active { background: rgba(56, 189, 248, 0.6); }
                 
                 #btn-left { bottom: 30px; left: 30px; }
                 #btn-right { bottom: 30px; left: 140px; }
@@ -129,10 +132,10 @@ jobs:
                     color: #38bdf8; font-size: 24px; font-weight: bold;
                     background: rgba(15, 23, 42, 0.8); padding: 8px 20px;
                     border-radius: 10px; border: 1px solid #38bdf8;
-                    text-shadow: 0 0 10px #38bdf8;
+                    text-shadow: 0 0 10px #38bdf8; z-index: 10;
                 }
             </style>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script src="three.min.js"></script>
         </head>
         <body>
             <div id="speedometer">0 KM/H</div>
@@ -142,6 +145,11 @@ jobs:
             <div class="control-btn" id="btn-race">GAS</div>
 
             <script>
+                // Verify if Three.js is loaded successfully offline
+                if (typeof THREE === 'undefined') {
+                    document.body.innerHTML = "<h2 style='color:white;text-align:center;margin-top:20%;'>Engine Error: Please rebuild.</h2>";
+                }
+
                 const scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x0f172a);
                 scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
@@ -152,22 +160,24 @@ jobs:
                 renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
                 scene.add(ambientLight);
-                const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.2);
+                const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.4);
                 dirLight.position.set(20, 40, 20);
                 dirLight.castShadow = true;
                 scene.add(dirLight);
 
-                const roadGeo = new THREE.PlaneGeometry(16, 2000);
-                const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8, metalness: 0.2 });
+                // Road Design
+                const roadGeo = new THREE.PlaneGeometry(16, 3000);
+                const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.3 });
                 const road = new THREE.Mesh(roadGeo, roadMat);
                 road.rotation.x = -Math.PI / 2;
                 road.receiveShadow = true;
                 scene.add(road);
 
-                for(let i = 0; i < 20; i++) {
-                    const lineGeo = new THREE.PlaneGeometry(0.3, 15);
+                // Add Visible Side Rails / Lines for High-Speed Illusion
+                for(let i = 0; i < 50; i++) {
+                    const lineGeo = new THREE.PlaneGeometry(0.4, 20);
                     const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                     const line = new THREE.Mesh(lineGeo, lineMat);
                     line.rotation.x = -Math.PI / 2;
@@ -175,40 +185,42 @@ jobs:
                     scene.add(line);
                 }
 
+                // Sports Car Group
                 const carGroup = new THREE.Group();
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, metalness: 0.9 });
-                const bodyGeo = new THREE.BoxGeometry(2, 0.6, 4.5);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.1, metalness: 0.9 });
+                const bodyGeo = new THREE.BoxGeometry(2.2, 0.6, 4.6);
                 const body = new THREE.Mesh(bodyGeo, bodyMat);
                 body.position.y = 0.5;
                 body.castShadow = true;
                 carGroup.add(body);
 
-                const cabinGeo = new THREE.BoxGeometry(1.6, 0.5, 2);
-                const cabinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 1.0, transparent: true, opacity: 0.7 });
+                const cabinGeo = new THREE.BoxGeometry(1.7, 0.5, 2.2);
+                const cabinMat = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.0, metalness: 1.0 });
                 const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-                cabin.position.set(0, 0.9, -0.3);
+                cabin.position.set(0, 0.9, -0.2);
                 carGroup.add(cabin);
 
                 const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.4, 24);
-                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.5 });
+                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.6 });
                 const frontLeft = new THREE.Mesh(wheelGeo, wheelMat);
                 frontLeft.rotation.z = Math.PI / 2;
-                frontLeft.position.set(-1.1, 0.45, -1.4);
+                frontLeft.position.set(-1.2, 0.45, -1.5);
                 
-                const frontRight = frontLeft.clone(); frontRight.position.x = 1.1;
-                const rearLeft = frontLeft.clone(); rearLeft.position.z = 1.4;
-                const rearRight = frontRight.clone(); rearRight.position.z = 1.4;
+                const frontRight = frontLeft.clone(); frontRight.position.x = 1.2;
+                const rearLeft = frontLeft.clone(); rearLeft.position.z = 1.5;
+                const rearRight = frontRight.clone(); rearRight.position.z = 1.5;
                 
                 carGroup.add(frontLeft, frontRight, rearLeft, rearRight);
                 scene.add(carGroup);
 
+                // Controls & Physics Config
                 let speed = 0;
-                const maxSpeed = 1.5;      
-                const maxReverseSpeed = -0.5;
-                const accel = 0.015;
-                const deccel = 0.008;       
-                const brakingPower = 0.04;   
-                const turnSpeed = 0.04;
+                const maxSpeed = 2.0;      
+                const maxReverseSpeed = -0.6;
+                const accel = 0.02;
+                const deccel = 0.009;       
+                const brakingPower = 0.06;   
+                const turnSpeed = 0.05;
 
                 let inputs = { left: false, right: false, race: false, back: false };
 
@@ -236,7 +248,10 @@ jobs:
                     }
 
                     carGroup.position.x = Math.max(-7, Math.min(7, carGroup.position.x));
-                    document.getElementById('speedometer').innerText = Math.round(Math.abs(speed) * 160) + " KM/H";
+                    document.getElementById('speedometer').innerText = Math.round(Math.abs(speed) * 140) + " KM/H";
+                    
+                    // Loop track endlessly
+                    if(carGroup.position.z < -2000) carGroup.position.z = 0;
                 }
 
                 function setupBtn(id, key) {
@@ -250,7 +265,7 @@ jobs:
                 setupBtn('btn-back', 'back');
 
                 function updateCamera() {
-                    camera.position.set(carGroup.position.x, carGroup.position.y + 2.5, carGroup.position.z + 6.5);
+                    camera.position.set(carGroup.position.x, carGroup.position.y + 2.8, carGroup.position.z + 7.5);
                     camera.lookAt(new THREE.Vector3(carGroup.position.x, carGroup.position.y + 0.8, carGroup.position.z - 5));
                 }
 
@@ -272,7 +287,7 @@ jobs:
         </html>
         EOF
 
-        # 7. MainActivity.java
+        # 8. MainActivity.java (Hardware accelerated WebView configuration)
         cat << 'EOF' > src/main/java/com/fastchat/racing/MainActivity.java
         package com.fastchat.racing;
 
@@ -304,6 +319,7 @@ jobs:
                 settings.setJavaScriptEnabled(true);
                 settings.setDomStorageEnabled(true);
                 settings.setAllowFileAccess(true);
+                settings.setAllowContentAccess(true);
                 settings.setLoadsImagesAutomatically(true);
                 
                 webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -318,7 +334,7 @@ jobs:
         }
         EOF
 
-        # 8. Resources
+        # 9. Resources Setup
         cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">Nitro Velocity</string></resources>
         EOF
@@ -332,7 +348,6 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
-    # SMART FIX: Automatically scans and copies any generated APK to root directory for safe delivery
     - name: 🔍 Locate and Stage APK
       run: |
         mkdir -p final-apk/
