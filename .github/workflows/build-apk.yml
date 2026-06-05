@@ -1,4 +1,4 @@
-name: Build Flashlight Controller App
+name: Build Realistic Racing Game
 
 on:
   push:
@@ -18,12 +18,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Directory Structure & Code Base
+    - name: ⚙️ Setup Directory Structure & Assets
       run: |
-        mkdir -p app/src/main/java/com/fastchat/flashlight/
+        mkdir -p app/src/main/java/com/fastchat/racing/
         mkdir -p app/src/main/res/layout/
         mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/res/drawable/
+        mkdir -p app/src/main/assets/
 
         # 1. Gradle Properties
         cat << 'EOF' > gradle.properties
@@ -50,23 +50,17 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Camera and Flashlight permissions added)
+        # 4. AndroidManifest.xml (Hardware Accelerated & Fullscreen)
         cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.fastchat.flashlight">
-
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-permission android:name="android.permission.FLASHLIGHT" />
-            
-            <uses-feature android:name="android.hardware.camera" />
-            <uses-feature android:name="android.hardware.camera.flash" />
-
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
-                android:label="⚡ Flash Pro Controller"
-                android:theme="@style/Theme.Flashlight"
-                android:icon="@mipmap/ic_launcher">
-                
-                <activity android:name=".MainActivity" android:exported="true">
+                android:label="🏎️ Nitro Velocity 3D"
+                android:theme="@style/Theme.AppCompat.NoActionBar"
+                android:hardwareAccelerated="true">
+                <activity android:name="com.fastchat.racing.MainActivity"
+                    android:screenOrientation="landscape"
+                    android:configChanges="orientation|screenSize|keyboardHidden"
+                    android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -76,294 +70,286 @@ jobs:
         </manifest>
         EOF
 
-        # Dummy Icon to prevent build failure
-        mkdir -p app/src/main/res/mipmap-hdpi
-        echo "" > app/src/main/res/mipmap-hdpi/ic_launcher.png
-
-        # 5. Background UI Drawable (Premium Dark Theme Layout)
-        cat << 'EOF' > app/src/main/res/drawable/main_bg.xml
-        <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <gradient android:startColor="#0F172A" android:endColor="#1E293B" android:angle="90"/>
-        </shape>
-        EOF
-
-        cat << 'EOF' > app/src/main/res/drawable/button_circle.xml
-        <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <solid android:color="#334155"/>
-            <corners android:radius="100dp"/>
-            <stroke android:width="3dp" android:color="#38BDF8"/>
-        </shape>
-        EOF
-
-        # 6. UI Layout XML (activity_main.xml)
+        # 5. UI Layout (Full Screen WebView)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:background="@drawable/main_bg"
-            android:padding="25dp" android:gravity="center_horizontal">
-
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="⚡ FLASH PRO" android:textColor="#38BDF8" android:textSize="28sp"
-                android:textStyle="bold" android:layout_marginTop="20dp"/>
-                
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="Advanced Hardware Controller" android:textColor="#94A3B8" android:textSize="14sp"/>
-
-            <!-- Main Toggle Button -->
-            <RelativeLayout android:layout_width="match_parent" android:layout_height="0dp"
-                android:layout_weight="1" android:gravity="center">
-                
-                <ToggleButton android:id="@+id/btn_flash_toggle" android:layout_width="140dp" android:layout_height="140dp"
-                    android:background="@drawable/button_circle" android:textOn="ON" android:textOff="OFF"
-                    android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold"/>
-            </RelativeLayout>
-
-            <!-- Control Panel -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical" android:background="#1E293B" android:padding="20dp"
-                android:layout_marginBottom="20dp">
-
-                <!-- Slider 1: Brightness Control -->
-                <TextView android:id="@+id/tv_brightness_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="💡 Brightness Level: 100%" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold"/>
-                
-                <SeekBar android:id="@+id/seek_brightness" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp" android:layout_marginBottom="25dp" android:max="10" android:progress="10"/>
-
-                <!-- Slider 2: Blinking / Strobe Speed -->
-                <TextView android:id="@+id/tv_speed_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="⏱️ Blinking Speed: Static (Always On)" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold"/>
-                
-                <SeekBar android:id="@+id/seek_speed" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp" android:max="10" android:progress="0"/>
-
-            </LinearLayout>
-        </LinearLayout>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000">
+            <android.webkit.WebView
+                android:id="@+id/game_webview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </RelativeLayout>
         EOF
 
-        # 7. Java Implementation (MainActivity.java with Real-time Threading)
-        cat << 'EOF' > app/src/main/java/com/fastchat/flashlight/MainActivity.java
-        package com.fastchat.flashlight;
+        # 6. High-Graphics Realistic 3D Game Engine (Three.js WebGL)
+        cat << 'EOF' > app/src/main/assets/game.html
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+            <style>
+                body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; }
+                canvas { display: block; width: 100vw; height: 100vh; }
+                
+                /* Realistic Premium Cyberpunk Style Touch Controls */
+                .control-btn {
+                    position: absolute; width: 85px; height: 85px;
+                    background: rgba(30, 41, 59, 0.7); border: 2px solid #38bdf8;
+                    border-radius: 50%; color: #fff; font-weight: bold; font-size: 18dp;
+                    display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+                    active { background: rgba(56, 189, 248, 0.5); }
+                }
+                #btn-left { bottom: 30px; left: 30px; }
+                #btn-right { bottom: 30px; left: 140px; }
+                #btn-back { bottom: 30px; right: 140px; border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+                #btn-race { bottom: 30px; right: 30px; border-color: #22c55e; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+                
+                #speedometer {
+                    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+                    color: #38bdf8; font-size: 24px; font-weight: bold;
+                    background: rgba(15, 23, 42, 0.8); padding: 8px 20px;
+                    border-radius: 10px; border: 1px solid #38bdf8;
+                    text-shadow: 0 0 10px #38bdf8;
+                }
+            </style>
+            <!-- Include High-Performance Three.js Engine -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        </head>
+        <body>
+            <div id="speedometer">0 KM/H</div>
+            <div class="control-btn" id="btn-left">◀</div>
+            <div class="control-btn" id="btn-right">▶</div>
+            <div class="control-btn" id="btn-back">BRK</div>
+            <div class="control-btn" id="btn-race">GAS</div>
 
-        import android.Manifest;
-        import android.content.Context;
-        import android.content.pm.PackageManager;
-        import android.hardware.camera2.CameraManager;
-        import android.os.Build;
+            <script>
+                // --- 3D Graphics Setup (Realistic Lighting & Environment) ---
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0f172a);
+                scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+
+                const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                document.body.appendChild(renderer.domElement);
+
+                // Realistic Metallic & Ambient Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.2);
+                dirLight.position.set(20, 40, 20);
+                dirLight.castShadow = true;
+                scene.add(dirLight);
+
+                // --- Track / Road Build (Asphalt Texture Look) ---
+                const roadGeo = new THREE.PlaneGeometry(16, 2000);
+                const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8, metalness: 0.2 });
+                const road = new THREE.Mesh(roadGeo, roadMat);
+                road.rotation.x = -Math.PI / 2;
+                road.receiveShadow = true;
+                scene.add(road);
+
+                // Realistic Road Markings (White Side Lines)
+                for(let i = 0; i < 20; i++) {
+                    const lineGeo = new THREE.PlaneGeometry(0.3, 15);
+                    const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    const line = new THREE.Mesh(lineGeo, lineMat);
+                    line.rotation.x = -Math.PI / 2;
+                    line.position.set(0, 0.02, -i * 60);
+                    scene.add(line);
+                }
+
+                // --- Car Design (Realistic Sports Car Chassis Body) ---
+                const carGroup = new THREE.Group();
+                
+                // Sleek Metallic Body Panels
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, metalness: 0.9 });
+                const bodyGeo = new THREE.BoxGeometry(2, 0.6, 4.5);
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.y = 0.5;
+                body.castShadow = true;
+                carGroup.add(body);
+
+                // Cockpit Windshield (Glass Effect)
+                const cabinGeo = new THREE.BoxGeometry(1.6, 0.5, 2);
+                const cabinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 1.0, transparent: true, opacity: 0.7 });
+                const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+                cabin.position.set(0, 0.9, -0.3);
+                carGroup.add(cabin);
+
+                // Realistic Alloy Wheels
+                const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.4, 24);
+                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.5 });
+                const frontLeft = new THREE.Mesh(wheelGeo, wheelMat);
+                frontLeft.rotation.z = Math.PI / 2;
+                frontLeft.position.set(-1.1, 0.45, -1.4);
+                
+                const frontRight = frontLeft.clone(); frontRight.position.x = 1.1;
+                const rearLeft = frontLeft.clone(); rearLeft.position.z = 1.4;
+                const rearRight = frontRight.clone(); rearRight.position.z = 1.4;
+                
+                carGroup.add(frontLeft, frontRight, rearLeft, rearRight);
+                scene.add(carGroup);
+
+                // --- Physics & Custom Realistic Control State Engine ---
+                let speed = 0;
+                const maxSpeed = 1.5;      // Scaled max velocity forward
+                const maxReverseSpeed = -0.5;
+                const accel = 0.015;
+                const deccel = 0.008;       // Natural friction slowing down
+                const brakingPower = 0.04;   // Quick stopping power
+                const turnSpeed = 0.04;
+
+                let inputs = { left: false, right: false, race: false, back: false };
+
+                // Physics Handling Loop (The core logic requested)
+                function updatePhysics() {
+                    // 1. FORWARD MOTION LOGIC
+                    if (inputs.race) {
+                        if (speed < 0) {
+                            // If moving backward, GAS acts as a brake first
+                            speed += brakingPower;
+                        } else {
+                            // Normal Acceleration forward
+                            speed += accel;
+                        }
+                    }
+                    
+                    // 2. REVERSE / BRAKING LOGIC
+                    if (inputs.back) {
+                        if (speed > 0) {
+                            // If moving forward, BACK button acts as a heavy brake first
+                            speed -= brakingPower;
+                        } else {
+                            // Normal Reverse Acceleration backward
+                            speed -= accel;
+                        }
+                    }
+
+                    // 3. NO INPUTS - NATURAL FRICTION DECELERATION
+                    if (!inputs.race && !inputs.back) {
+                        if (speed > 0) speed = Math.max(0, speed - deccel);
+                        if (speed < 0) speed = Math.min(0, speed + deccel);
+                    }
+
+                    // Clamp speed boundaries
+                    speed = Math.max(maxReverseSpeed, Math.min(maxSpeed, speed));
+
+                    // Apply Forward/Backward Position Move
+                    carGroup.position.z -= speed;
+
+                    // 4. STEERING CONTROLS (Only turns if car is actually rolling)
+                    if (Math.abs(speed) > 0.05) {
+                        const direct = speed > 0 ? 1 : -1;
+                        if (inputs.left) carGroup.position.x -= turnSpeed * direct;
+                        if (inputs.right) carGroup.position.x += turnSpeed * direct;
+                    }
+
+                    // Bound track boundaries so car doesn't fall off
+                    carGroup.position.x = Math.max(-7, Math.min(7, carGroup.position.x));
+
+                    // Render Dynamic Speedometer (Scaled UI display)
+                    document.getElementById('speedometer').innerText = Math.round(Math.abs(speed) * 160) + " KM/H";
+                }
+
+                // --- Touch Event Handlers ---
+                function setupBtn(id, key) {
+                    const el = document.getElementById(id);
+                    el.addEventListener('touchstart', (e) => { e.preventDefault(); inputs[key] = true; });
+                    el.addEventListener('touchend', (e) => { e.preventDefault(); inputs[key] = false; });
+                }
+                setupBtn('btn-left', 'left');
+                setupBtn('btn-right', 'right');
+                setupBtn('btn-race', 'race');
+                setupBtn('btn-back', 'back');
+
+                // Camera Follow Mechanism (Smooth Third-Person View like Asphalt)
+                function updateCamera() {
+                    camera.position.set(carGroup.position.x, carGroup.position.y + 2.5, carGroup.position.z + 6.5);
+                    camera.lookAt(new THREE.Vector3(carGroup.position.x, carGroup.position.y + 0.8, carGroup.position.z - 5));
+                }
+
+                // Animation Cycle Loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    updatePhysics();
+                    updateCamera();
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                // Responsive sizing
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            </script>
+        </body>
+        </html>
+        EOF
+
+        # 7. MainActivity.java (Native WebView Setup with WebGL Settings)
+        cat << 'EOF' > app/src/main/java/com/fastchat/racing/MainActivity.java
+        package com.fastchat.racing;
+
+        import android.annotation.SuppressLint;
         import android.os.Bundle;
-        import android.widget.SeekBar;
-        import android.widget.TextView;
-        import android.widget.Toast;
-        import android.widget.ToggleButton;
-        import androidx.annotation.NonNull;
+        import android.view.View;
+        import android.webkit.WebSettings;
+        import android.webkit.WebView;
         import androidx.appcompat.app.AppCompatActivity;
-        import androidx.core.app.ActivityCompat;
-        import androidx.core.content.ContextCompat;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int CAMERA_REQ_CODE = 44;
+            private WebView webView;
 
-            private ToggleButton btnFlashToggle;
-            private SeekBar seekBrightness, seekSpeed;
-            private TextView tvBrightnessLabel, tvSpeedLabel;
-
-            private CameraManager cameraManager;
-            private String cameraId;
-            
-            private boolean isFlashOn = false;
-            private int brightnessLevel = 10; // Default max
-            private int blinkSpeed = 0;        // 0 means Static Always On
-            
-            private Thread blinkThread;
-            private volatile boolean isBlinkingRunning = false;
-
+            @SuppressLint("SetJavaScriptEnabled")
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                btnFlashToggle = findViewById(R.id.btn_flash_toggle);
-                seekBrightness = findViewById(R.id.seek_brightness);
-                seekSpeed = findViewById(R.id.seek_speed);
-                tvBrightnessLabel = findViewById(R.id.tv_brightness_label);
-                tvSpeedLabel = findViewById(R.id.tv_speed_label);
+                // Fullscreen immersive view
+                getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                );
 
-                cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-                try {
-                    String[] list = cameraManager.getCameraIdList();
-                    if (list.length > 0) cameraId = list[0]; // Back Camera Flash
-                } catch (Exception e) {
-                    Toast.makeText(this, "Hardware Flashlight not found!", Toast.LENGTH_SHORT).show();
-                }
+                webView = findViewById(R.id.game_webview);
+                WebSettings settings = webView.getSettings();
+                
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setAllowFileAccess(true);
+                settings.setLoadsImagesAutomatically(true);
+                
+                // Active High-Performance WebGL Engine
+                webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-                // Request Runtime Camera Permission
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQ_CODE);
-                }
-
-                btnFlashToggle.setOnClickListener(v -> {
-                    isFlashOn = btnFlashToggle.isChecked();
-                    updateFlashState();
-                });
-
-                // Slider 1: Brightness Slider Logic
-                seekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                    @Override
-                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                        if (progress == 0) progress = 1; // Minimum level cannot be zero
-                        brightnessLevel = progress;
-                        tvBrightnessLabel.setText("💡 Brightness Level: " + (brightnessLevel * 10) + "%");
-                        if (isFlashOn && blinkSpeed == 0) {
-                            applyHardwareFlash(true);
-                        }
-                    }
-                    @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-                    @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-                });
-
-                // Slider 2: Blinking Speed Slider Logic
-                seekSpeed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                    @Override
-                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                        blinkSpeed = progress;
-                        if (blinkSpeed == 0) {
-                            tvSpeedLabel.setText("⏱️ Blinking Speed: Static (Always On)");
-                        } else {
-                            tvSpeedLabel.setText("⏱️ Blinking Speed Level: " + blinkSpeed + " Hz");
-                        }
-                        if (isFlashOn) {
-                            updateFlashState(); // Reset toggle streams
-                        }
-                    }
-                    @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-                    @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-                });
-            }
-
-            private void updateFlashState() {
-                if (!isFlashOn) {
-                    stopBlinkingEngine();
-                    applyHardwareFlash(false);
-                } else {
-                    if (blinkSpeed == 0) {
-                        stopBlinkingEngine();
-                        applyHardwareFlash(true);
-                    } else {
-                        startBlinkingEngine();
-                    }
-                }
-            }
-
-            private void applyHardwareFlash(boolean status) {
-                if (cameraId == null) return;
-                try {
-                    if (status) {
-                        // If phone supports Brightness control (Android 13+)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            try {
-                                int maxLevel = cameraManager.getCameraCharacteristics(cameraId)
-                                        .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_STRENGTH_MAX_LEVEL);
-                                if (maxLevel > 1) {
-                                    int calculatedStrength = (int) ((brightnessLevel / 10.0) * maxLevel);
-                                    if (calculatedStrength < 1) calculatedStrength = 1;
-                                    cameraManager.turnOnTorchWithStrengthLevel(cameraId, calculatedStrength);
-                                    return;
-                                }
-                            } catch (Exception ignored) {}
-                        }
-                        // Standard On if strength control not available
-                        cameraManager.setTorchMode(cameraId, true);
-                    } else {
-                        cameraManager.setTorchMode(cameraId, false);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-
-            private void startBlinkingEngine() {
-                stopBlinkingEngine(); // clear existing thread if running
-                isBlinkingRunning = true;
-                blinkThread = new Thread(() -> {
-                    while (isBlinkingRunning) {
-                        try {
-                            applyHardwareFlash(true);
-                            // Higher seek value means shorter sleep -> faster blinking
-                            long sleepTime = 600 / blinkSpeed; 
-                            Thread.sleep(sleepTime);
-                            applyHardwareFlash(false);
-                            Thread.sleep(sleepTime);
-                        } catch (InterruptedException e) {
-                            break;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                blinkThread.start();
-            }
-
-            private void stopBlinkingEngine() {
-                isBlinkingRunning = false;
-                if (blinkThread != null) {
-                    blinkThread.interrupt();
-                    blinkThread = null;
-                }
+                webView.loadUrl("file:///android_asset/game.html");
             }
 
             @Override
-            public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] results) {
-                super.onRequestPermissionsResult(code, perms, results);
-                if (code == CAMERA_REQ_CODE && results.length > 0 && results[0] != PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Camera permission required for flash control!", Toast.LENGTH_LONG).show();
+            protected void onDestroy() {
+                if (webView != null) {
+                    webView.destroy();
                 }
-            }
-
-            @Override
-            protected void onPause() {
-                super.onPause();
-                // Turn off safely when leaving app to prevent overheating
-                if (isFlashOn) {
-                    btnFlashToggle.setChecked(false);
-                    isFlashOn = false;
-                    updateFlashState();
-                }
+                super.onDestroy();
             }
         }
         EOF
 
-        # 8. Color Themes & Styles
+        # 8. Empty values configurations to prevent compiler crash
+        cat << 'EOF' > app/src/main/res/values/strings.xml
+        <resources><string name="app_name">Nitro Velocity</string></resources>
+        EOF
         cat << 'EOF' > app/src/main/res/values/styles.xml
-        <resources>
-            <style name="Theme.Flashlight" parent="Theme.MaterialComponents.Light.NoActionBar">
-                <item name="colorPrimary">#0F172A</item>
-                <item name="colorPrimaryDark">#020617</item>
-                <item name="colorAccent">#38BDF8</item>
-                <item name="android:statusBarColor">#0F172A</item>
-            </style>
-        </resources>
-        EOF
-
-        # 9. App-Level build.gradle Configuration
-        cat << 'EOF' > app/build.gradle
-        plugins {
-            id 'com.android.application'
-        }
-        android {
-            namespace 'com.fastchat.flashlight'
-            compileSdk 34
-            defaultConfig {
-                applicationId 'com.fastchat.flashlight'
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName "1.0"
-            }
-        }
-        dependencies {
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.11.0'
-        }
+        <resources></resources>
         EOF
 
     - name: 🏗️ Create Gradle Wrapper & Run Build
@@ -375,5 +361,5 @@ jobs:
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: Flash-Pro-Controller
+        name: Realistic-Nitro-Game
         path: app/build/outputs/apk/debug/app-debug.apk
