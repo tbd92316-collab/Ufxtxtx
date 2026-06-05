@@ -20,10 +20,10 @@ jobs:
 
     - name: ⚙️ Setup Directory Structure & Assets
       run: |
-        mkdir -p app/src/main/java/com/fastchat/racing/
-        mkdir -p app/src/main/res/layout/
-        mkdir -p app/src/main/res/values/
-        mkdir -p app/src/main/assets/
+        mkdir -p src/main/java/com/fastchat/racing/
+        mkdir -p src/main/res/layout/
+        mkdir -p src/main/res/values/
+        mkdir -p src/main/assets/
 
         # 1. Gradle Properties
         cat << 'EOF' > gradle.properties
@@ -31,7 +31,7 @@ jobs:
         android.enableJetifier=true
         EOF
 
-        # 2. Settings.gradle
+        # 2. Settings.gradle (Single project setup to avoid task missing errors)
         cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories { google(); mavenCentral(); gradlePluginPortal() }
@@ -40,18 +40,35 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        include ':app'
+        rootProject.name = "NitroVelocity"
         EOF
 
-        # 3. Root build.gradle
+        # 3. Combined Single build.gradle (Direct application setup)
         cat << 'EOF' > build.gradle
         plugins {
-            id 'com.android.application' version '8.2.2' apply false
+            id 'com.android.application' version '8.2.2'
+        }
+
+        android {
+            namespace 'com.fastchat.racing'
+            compileSdk 34
+            defaultConfig {
+                applicationId 'com.fastchat.racing'
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
         }
         EOF
 
         # 4. AndroidManifest.xml (Hardware Accelerated & Fullscreen)
-        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
                 android:label="🏎️ Nitro Velocity 3D"
@@ -71,7 +88,7 @@ jobs:
         EOF
 
         # 5. UI Layout (Full Screen WebView)
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -84,7 +101,7 @@ jobs:
         EOF
 
         # 6. High-Graphics Realistic 3D Game Engine (Three.js WebGL)
-        cat << 'EOF' > app/src/main/assets/game.html
+        cat << 'EOF' > src/main/assets/game.html
         <!DOCTYPE html>
         <html>
         <head>
@@ -93,15 +110,15 @@ jobs:
                 body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; }
                 canvas { display: block; width: 100vw; height: 100vh; }
                 
-                /* Realistic Premium Cyberpunk Style Touch Controls */
                 .control-btn {
                     position: absolute; width: 85px; height: 85px;
                     background: rgba(30, 41, 59, 0.7); border: 2px solid #38bdf8;
-                    border-radius: 50%; color: #fff; font-weight: bold; font-size: 18dp;
+                    border-radius: 50%; color: #fff; font-weight: bold; font-size: 18px;
                     display: flex; align-items: center; justify-content: center;
                     box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-                    active { background: rgba(56, 189, 248, 0.5); }
                 }
+                .control-btn:active { background: rgba(56, 189, 248, 0.5); }
+                
                 #btn-left { bottom: 30px; left: 30px; }
                 #btn-right { bottom: 30px; left: 140px; }
                 #btn-back { bottom: 30px; right: 140px; border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
@@ -115,7 +132,6 @@ jobs:
                     text-shadow: 0 0 10px #38bdf8;
                 }
             </style>
-            <!-- Include High-Performance Three.js Engine -->
             <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         </head>
         <body>
@@ -126,7 +142,6 @@ jobs:
             <div class="control-btn" id="btn-race">GAS</div>
 
             <script>
-                // --- 3D Graphics Setup (Realistic Lighting & Environment) ---
                 const scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x0f172a);
                 scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
@@ -137,7 +152,6 @@ jobs:
                 renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                // Realistic Metallic & Ambient Lighting
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
                 scene.add(ambientLight);
                 const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.2);
@@ -145,7 +159,6 @@ jobs:
                 dirLight.castShadow = true;
                 scene.add(dirLight);
 
-                // --- Track / Road Build (Asphalt Texture Look) ---
                 const roadGeo = new THREE.PlaneGeometry(16, 2000);
                 const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8, metalness: 0.2 });
                 const road = new THREE.Mesh(roadGeo, roadMat);
@@ -153,7 +166,6 @@ jobs:
                 road.receiveShadow = true;
                 scene.add(road);
 
-                // Realistic Road Markings (White Side Lines)
                 for(let i = 0; i < 20; i++) {
                     const lineGeo = new THREE.PlaneGeometry(0.3, 15);
                     const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -163,10 +175,7 @@ jobs:
                     scene.add(line);
                 }
 
-                // --- Car Design (Realistic Sports Car Chassis Body) ---
                 const carGroup = new THREE.Group();
-                
-                // Sleek Metallic Body Panels
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, metalness: 0.9 });
                 const bodyGeo = new THREE.BoxGeometry(2, 0.6, 4.5);
                 const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -174,14 +183,12 @@ jobs:
                 body.castShadow = true;
                 carGroup.add(body);
 
-                // Cockpit Windshield (Glass Effect)
                 const cabinGeo = new THREE.BoxGeometry(1.6, 0.5, 2);
                 const cabinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 1.0, transparent: true, opacity: 0.7 });
                 const cabin = new THREE.Mesh(cabinGeo, cabinMat);
                 cabin.position.set(0, 0.9, -0.3);
                 carGroup.add(cabin);
 
-                // Realistic Alloy Wheels
                 const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.4, 24);
                 const wheelMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.5 });
                 const frontLeft = new THREE.Mesh(wheelGeo, wheelMat);
@@ -195,68 +202,43 @@ jobs:
                 carGroup.add(frontLeft, frontRight, rearLeft, rearRight);
                 scene.add(carGroup);
 
-                // --- Physics & Custom Realistic Control State Engine ---
                 let speed = 0;
-                const maxSpeed = 1.5;      // Scaled max velocity forward
+                const maxSpeed = 1.5;      
                 const maxReverseSpeed = -0.5;
                 const accel = 0.015;
-                const deccel = 0.008;       // Natural friction slowing down
-                const brakingPower = 0.04;   // Quick stopping power
+                const deccel = 0.008;       
+                const brakingPower = 0.04;   
                 const turnSpeed = 0.04;
 
                 let inputs = { left: false, right: false, race: false, back: false };
 
-                // Physics Handling Loop (The core logic requested)
                 function updatePhysics() {
-                    // 1. FORWARD MOTION LOGIC
                     if (inputs.race) {
-                        if (speed < 0) {
-                            // If moving backward, GAS acts as a brake first
-                            speed += brakingPower;
-                        } else {
-                            // Normal Acceleration forward
-                            speed += accel;
-                        }
+                        if (speed < 0) speed += brakingPower;
+                        else speed += accel;
                     }
-                    
-                    // 2. REVERSE / BRAKING LOGIC
                     if (inputs.back) {
-                        if (speed > 0) {
-                            // If moving forward, BACK button acts as a heavy brake first
-                            speed -= brakingPower;
-                        } else {
-                            // Normal Reverse Acceleration backward
-                            speed -= accel;
-                        }
+                        if (speed > 0) speed -= brakingPower;
+                        else speed -= accel;
                     }
-
-                    // 3. NO INPUTS - NATURAL FRICTION DECELERATION
                     if (!inputs.race && !inputs.back) {
                         if (speed > 0) speed = Math.max(0, speed - deccel);
                         if (speed < 0) speed = Math.min(0, speed + deccel);
                     }
 
-                    // Clamp speed boundaries
                     speed = Math.max(maxReverseSpeed, Math.min(maxSpeed, speed));
-
-                    // Apply Forward/Backward Position Move
                     carGroup.position.z -= speed;
 
-                    // 4. STEERING CONTROLS (Only turns if car is actually rolling)
                     if (Math.abs(speed) > 0.05) {
                         const direct = speed > 0 ? 1 : -1;
                         if (inputs.left) carGroup.position.x -= turnSpeed * direct;
                         if (inputs.right) carGroup.position.x += turnSpeed * direct;
                     }
 
-                    // Bound track boundaries so car doesn't fall off
                     carGroup.position.x = Math.max(-7, Math.min(7, carGroup.position.x));
-
-                    // Render Dynamic Speedometer (Scaled UI display)
                     document.getElementById('speedometer').innerText = Math.round(Math.abs(speed) * 160) + " KM/H";
                 }
 
-                // --- Touch Event Handlers ---
                 function setupBtn(id, key) {
                     const el = document.getElementById(id);
                     el.addEventListener('touchstart', (e) => { e.preventDefault(); inputs[key] = true; });
@@ -267,13 +249,11 @@ jobs:
                 setupBtn('btn-race', 'race');
                 setupBtn('btn-back', 'back');
 
-                // Camera Follow Mechanism (Smooth Third-Person View like Asphalt)
                 function updateCamera() {
                     camera.position.set(carGroup.position.x, carGroup.position.y + 2.5, carGroup.position.z + 6.5);
                     camera.lookAt(new THREE.Vector3(carGroup.position.x, carGroup.position.y + 0.8, carGroup.position.z - 5));
                 }
 
-                // Animation Cycle Loop
                 function animate() {
                     requestAnimationFrame(animate);
                     updatePhysics();
@@ -282,7 +262,6 @@ jobs:
                 }
                 animate();
 
-                // Responsive sizing
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -293,8 +272,8 @@ jobs:
         </html>
         EOF
 
-        # 7. MainActivity.java (Native WebView Setup with WebGL Settings)
-        cat << 'EOF' > app/src/main/java/com/fastchat/racing/MainActivity.java
+        # 7. MainActivity.java (Native WebView Setup)
+        cat << 'EOF' > src/main/java/com/fastchat/racing/MainActivity.java
         package com.fastchat.racing;
 
         import android.annotation.SuppressLint;
@@ -313,7 +292,6 @@ jobs:
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                // Fullscreen immersive view
                 getWindow().getDecorView().setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_FULLSCREEN |
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
@@ -328,27 +306,23 @@ jobs:
                 settings.setAllowFileAccess(true);
                 settings.setLoadsImagesAutomatically(true);
                 
-                // Active High-Performance WebGL Engine
                 webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
                 webView.loadUrl("file:///android_asset/game.html");
             }
 
             @Override
             protected void onDestroy() {
-                if (webView != null) {
-                    webView.destroy();
-                }
+                if (webView != null) webView.destroy();
                 super.onDestroy();
             }
         }
         EOF
 
-        # 8. Empty values configurations to prevent compiler crash
-        cat << 'EOF' > app/src/main/res/values/strings.xml
+        # 8. Empty configuration strings
+        cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">Nitro Velocity</string></resources>
         EOF
-        cat << 'EOF' > app/src/main/res/values/styles.xml
+        cat << 'EOF' > src/main/res/values/styles.xml
         <resources></resources>
         EOF
 
@@ -362,4 +336,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Realistic-Nitro-Game
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: build/outputs/apk/debug/app-debug.apk
