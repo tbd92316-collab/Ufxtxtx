@@ -31,7 +31,7 @@ jobs:
         android.enableJetifier=true
         EOF
 
-        # 2. Settings.gradle (Single project setup to avoid task missing errors)
+        # 2. Settings.gradle
         cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories { google(); mavenCentral(); gradlePluginPortal() }
@@ -43,7 +43,7 @@ jobs:
         rootProject.name = "NitroVelocity"
         EOF
 
-        # 3. Combined Single build.gradle (Direct application setup)
+        # 3. Single build.gradle
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2'
@@ -67,7 +67,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Hardware Accelerated & Fullscreen)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
@@ -87,7 +87,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (Full Screen WebView)
+        # 5. UI Layout
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -272,7 +272,7 @@ jobs:
         </html>
         EOF
 
-        # 7. MainActivity.java (Native WebView Setup)
+        # 7. MainActivity.java
         cat << 'EOF' > src/main/java/com/fastchat/racing/MainActivity.java
         package com.fastchat.racing;
 
@@ -318,7 +318,7 @@ jobs:
         }
         EOF
 
-        # 8. Empty configuration strings
+        # 8. Resources
         cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">Nitro Velocity</string></resources>
         EOF
@@ -332,6 +332,7 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
+    # FIXED: Updated exact artifact path for direct root project gradle builds
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
