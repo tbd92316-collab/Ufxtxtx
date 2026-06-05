@@ -332,9 +332,15 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
-    # FIXED: Updated exact artifact path for direct root project gradle builds
+    # SMART FIX: Automatically scans and copies any generated APK to root directory for safe delivery
+    - name: 🔍 Locate and Stage APK
+      run: |
+        mkdir -p final-apk/
+        find . -name "*.apk" -exec cp {} final-apk/game-release.apk \;
+        ls -la final-apk/
+
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
         name: Realistic-Nitro-Game
-        path: build/outputs/apk/debug/app-debug.apk
+        path: final-apk/game-release.apk
