@@ -1,389 +1,236 @@
-name: Build Custom YouTube Player App
+name: Create and Build Custom AdBlocker APK
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: 
+  workflow_dispatch: # GitHub dashboard par click karte hi chalega
 
 jobs:
-  build:
+  build-from-scratch:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Initialize Empty Directory
+        run: |
+          mkdir -p my-adblocker-app/app/src/main/java/com/my/adblocker
+          mkdir -p my-adblocker-app/app/src/main/res/values
+          cd my-adblocker-app
 
-    - name: Setup JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Create Settings Gradle
+        run: |
+          cat << 'EOF' > my-adblocker-app/settings.gradle
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "CustomAdBlocker"
+          include ':app'
+          EOF
 
-    - name: ⚙️ Setup Directory Structure & Assets
-      run: |
-        mkdir -p src/main/java/com/fastchat/ytplayer/
-        mkdir -p src/main/res/layout/
-        mkdir -p src/main/res/values/
-        mkdir -p src/main/assets/
+      - name: Create Project Build Gradle
+        run: |
+          cat << 'EOF' > my-adblocker-app/build.gradle
+          plugins {
+              id 'com.android.application' version '8.1.1' apply false
+          }
+          EOF
 
-        # 1. Gradle Properties
-        cat << 'EOF' > gradle.properties
-        android.useAndroidX=true
-        android.enableJetifier=true
-        EOF
+      - name: Create App Module Build Gradle
+        run: |
+          cat << 'EOF' > my-adblocker-app/app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.my.adblocker'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.my.adblocker"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release { minifyEnabled false }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
 
-        # 2. Settings.gradle
-        cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories { google(); mavenCentral(); gradlePluginPortal() }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories { google(); mavenCentral() }
-        }
-        rootProject.name = "CustomYTPlayer"
-        EOF
+      - name: Create Android Manifest
+        run: |
+          cat << 'EOF' > my-adblocker-app/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application
+                  android:allowBackup="true"
+                  android:label="My AdBlocker VPN"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <service android:name=".LocalVpnService"
+                      android:permission="android.permission.BIND_VPN_SERVICE"
+                      android:exported="false">
+                      <intent-filter>
+                          <action android:name="android.net.VpnService" />
+                      </intent-filter>
+                  </service>
+              </application>
+          </manifest>
+          EOF
 
-        # 3. Build.gradle
-        cat << 'EOF' > build.gradle
-        plugins {
-            id 'com.android.application' version '8.2.2'
-        }
+      - name: Create LocalVpnService (Core VPN Engine)
+        run: |
+          cat << 'EOF' > my-adblocker-app/app/src/main/java/com/my/adblocker/LocalVpnService.java
+          package com.my.adblocker;
 
-        android {
-            namespace 'com.fastchat.ytplayer'
-            compileSdk 34
-            defaultConfig {
-                applicationId 'com.fastchat.ytplayer'
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName "1.0"
-            }
-        }
+          import android.content.Intent;
+          import android.net.VpnService;
+          import android.os.ParcelFileDescriptor;
+          import android.util.Log;
+          import java.io.IOException;
 
-        dependencies {
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.11.0'
-        }
-        EOF
+          public class LocalVpnService extends VpnService implements Runnable {
+              private Thread mThread;
+              private ParcelFileDescriptor mInterface;
 
-        # 4. AndroidManifest.xml
-        cat << 'EOF' > src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            
-            <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  if (mThread != null) { mThread.interrupt(); }
+                  mThread = new Thread(this, "LocalVpnThread");
+                  mThread.start();
+                  return START_STICKY;
+              }
 
-            <application
-                android:label="🔴 PlayTube Pro"
-                android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
-                android:hardwareAccelerated="true">
-                
-                <activity android:name="com.fastchat.ytplayer.MainActivity"
-                    android:configChanges="orientation|screenSize|keyboardHidden"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
+              @Override
+              public void onDestroy() {
+                  if (mThread != null) { mThread.interrupt(); }
+                  closeInterface();
+                  super.onDestroy();
+              }
 
-            </application>
-        </manifest>
-        EOF
+              @Override
+              public void run() {
+                  try {
+                      Builder builder = new Builder();
+                      builder.setSession("MyAdBlocker")
+                             .addAddress("10.0.0.1", 24)
+                             .addRoute("0.0.0.0", 0);
+                      
+                      // Auto route traffic through AdGuard Ad-blocking DNS
+                      builder.addDnsServer("94.140.14.14");
+                      builder.addDnsServer("94.140.15.15");
 
-        # 5. UI Layout
-        cat << 'EOF' > src/main/res/layout/activity_main.xml
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#0f0f0f">
+                      mInterface = builder.establish();
+                      while (!Thread.interrupted()) {
+                          Thread.sleep(2000);
+                      }
+                  } catch (Exception e) {
+                      Log.e("VPN", "Error", e);
+                  } finally {
+                      closeInterface();
+                  }
+              }
 
-            <android.webkit.WebView
-                android:id="@+id/youtube_webview"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone" />
+              private void closeInterface() {
+                  try {
+                      if (mInterface != null) { mInterface.close(); mInterface = null; }
+                  } catch (IOException e) {
+                      Log.e("VPN", "Close Error", e);
+                  }
+              }
+          }
+          EOF
 
-            <RelativeLayout
-                android:id="@+id/splash_screen"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#0f0f0f">
+      - name: Create MainActivity UI Code
+        run: |
+          cat << 'EOF' > my-adblocker-app/app/src/main/java/com/my/adblocker/MainActivity.java
+          package com.my.adblocker;
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:layout_centerInParent="true">
+          import android.content.Intent;
+          import android.net.VpnService;
+          import android.os.Bundle;
+          import android.widget.Button;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="▶️ YouTube"
-                        android:textColor="#ffffff"
-                        android:textSize="38sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="-0.02"/>
+          public class MainActivity extends AppCompatActivity {
+              private static final int VPN_REQUEST_CODE = 100;
+              private boolean isRunning = false;
+              private Button btn;
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Custom Premium Engine"
-                        android:textColor="#ff0000"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="10dp"
-                        android:letterSpacing="0.1"/>
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  btn = new Button(this);
+                  btn.setText("Activate Ad-Blocker");
+                  btn.setTextSize(22);
+                  setContentView(btn);
 
-                    <ProgressBar
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginTop="40dp"
-                        android:indeterminateTint="#ff0000" />
+                  btn.setOnClickListener(v -> {
+                      if (!isRunning) {
+                          Intent intent = VpnService.prepare(MainActivity.this);
+                          if (intent != null) {
+                              startActivityForResult(intent, VPN_REQUEST_CODE);
+                          } else {
+                              startVpn();
+                          }
+                      } else {
+                          stopVpn();
+                      }
+                  });
+              }
 
-                </LinearLayout>
+              private void startVpn() {
+                  startService(new Intent(this, LocalVpnService.class));
+                  btn.setText("Ad-Blocker Active (Click to Stop)");
+                  isRunning = true;
+                  Toast.makeText(this, "VPN Ad-Blocker Started!", Toast.LENGTH_SHORT).show();
+              }
 
-            </RelativeLayout>
+              private void stopVpn() {
+                  stopService(new Intent(this, LocalVpnService.class));
+                  btn.setText("Activate Ad-Blocker");
+                  isRunning = false;
+                  Toast.makeText(this, "VPN Ad-Blocker Stopped!", Toast.LENGTH_SHORT).show();
+              }
 
-        </RelativeLayout>
-        EOF
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+                  if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
+                      startVpn();
+                  }
+              }
+          }
+          EOF
 
-        # 6. Web Interface System (index.html)
-        cat << 'EOF' > src/main/assets/index.html
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>PlayTube Custom UI</title>
-            <style>
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { background: #0f0f0f; color: #fff; font-family: 'Roboto', sans-serif; overflow-x: hidden; padding-bottom: 70px; }
-                .header { position: sticky; top: 0; background: #0f0f0f; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; z-index: 100; border-bottom: 1px solid #212121; }
-                .logo { display: flex; align-items: center; font-size: 20px; font-weight: bold; color: #fff; gap: 6px; }
-                .logo span { background: #ff0000; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
-                .video-player-container { position: sticky; top: 49px; width: 100%; aspect-ratio: 16/9; background: #000; z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-                iframe { width: 100%; height: 100%; border: none; }
-                .video-details { padding: 14px; border-bottom: 1px solid #212121; }
-                .video-title { font-size: 16px; font-weight: 500; line-height: 1.4; margin-bottom: 8px; color: #f1f1f1; }
-                .video-stats { font-size: 12px; color: #aaa; }
-                .feed-section { padding: 12px; }
-                .feed-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #ff0000; text-transform: uppercase; letter-spacing: 0.5px;}
-                .video-card { display: flex; gap: 12px; margin-bottom: 16px; background: #171717; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-                .video-card:active { background: #222; }
-                .thumbnail-box { position: relative; width: 130px; aspect-ratio: 16/9; background: #333; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-                .thumbnail-box img { width: 100%; height: 100%; object-fit: cover; }
-                .duration { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); font-size: 10px; padding: 1px 4px; border-radius: 3px; }
-                .card-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-                .card-title { font-size: 13px; font-weight: 500; max-height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #f1f1f1; line-height: 1.3;}
-                .card-channel { font-size: 11px; color: #aaa; margin-top: 4px; }
-                .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 56px; background: #0f0f0f; border-top: 1px solid #212121; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-                .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #aaa; text-decoration: none; }
-                .nav-item.active { color: #ff0000; }
-                .nav-icon { font-size: 18px; margin-bottom: 2px; }
-            </style>
-        </head>
-        <body>
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-            <div class="header">
-                <div class="logo">🔴 PlayTube <span>PRO</span></div>
-            </div>
+      - name: Build Custom AdBlocker APK
+        run: |
+          cd my-adblocker-app
+          gradle wrapper --gradle-version 8.2
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
 
-            <div class="video-player-container">
-                <div id="player"></div>
-            </div>
-
-            <div class="video-details">
-                <div class="video-title" id="current-title">Loading system streams...</div>
-                <div class="video-stats" id="current-stats">Trending No.1 • 60FPS Stream Engine</div>
-            </div>
-
-            <div class="feed-section">
-                <div class="feed-title">⚡ Recommendation Feed (Auto-API)</div>
-                <div id="feed-container"></div>
-            </div>
-
-            <div class="bottom-nav">
-                <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
-                <div class="nav-item" onclick="loadShorts()"><div class="nav-icon">🔥</div>Shorts</div>
-                <div class="nav-item"><div class="nav-icon">📁</div>Library</div>
-            </div>
-
-            <script>
-                const videoDatabase = [
-                    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up (Official Music Video)', channel: 'Rick Astley', duration: '3:33', thumb: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
-                    { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE(강남스타일) M/V', channel: 'PSY', duration: '4:12', thumb: 'https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg' },
-                    { id: 'jNQXAC9IVRw', title: 'Me at the zoo - First Ever YouTube Video', channel: 'jawed', duration: '0:19', thumb: 'https://img.youtube.com/vi/jNQXAC9IVRw/mqdefault.jpg' },
-                    { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee', channel: 'Luis Fonsi', duration: '4:42', thumb: 'https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg' },
-                    { id: 'ScMzIvxBSi4', title: 'Amazing Beautiful Earth 4K Relaxing Video', channel: 'Nature Flows', duration: '5:00', thumb: 'https://img.youtube.com/vi/ScMzIvxBSi4/mqdefault.jpg' }
-                ];
-
-                const shortsDatabase = [
-                    { id: '34Na4j8AVgA', title: 'Insane Tech Gadgets You Need Now! #shorts', channel: 'TechShorts', duration: '0:45', thumb: 'https://img.youtube.com/vi/34Na4j8AVgA/mqdefault.jpg' },
-                    { id: 'tpee887W80A', title: 'World Ultimate Speed Car Racing Simulator #shorts', channel: 'NitroSpeed', duration: '0:58', thumb: 'https://img.youtube.com/vi/tpee887W80A/mqdefault.jpg' }
-                ];
-
-                var tag = document.createElement('script');
-                tag.src = "https://www.youtube.com/iframe_api";
-                var firstScriptTag = document.getElementsByTagName('script')[0];
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-                var player;
-                function onYouTubeIframeAPIReady() {
-                    player = new YT.Player('player', {
-                        videoId: videoDatabase[0].id,
-                        playerVars: {
-                            'playsinline': 1,
-                            'controls': 1,
-                            'rel': 0,
-                            'modestbranding': 1
-                        },
-                        events: {
-                            'onReady': onPlayerReady
-                        }
-                    });
-                }
-
-                function onPlayerReady(event) {
-                    updatePlayerMetadata(videoDatabase[0].title, videoDatabase[0].channel);
-                }
-
-                function playVideo(id, title, channel) {
-                    if(player && player.loadVideoById) {
-                        player.loadVideoById(id);
-                        updatePlayerMetadata(title, channel);
-                        window.scrollTo({top: 0, behavior: 'smooth'});
-                    }
-                }
-
-                function updatePlayerMetadata(title, channel) {
-                    document.getElementById('current-title').innerText = title;
-                    document.getElementById('current-stats').innerText = channel + " • 582K Views • Just Now";
-                }
-
-                function generateFeed(items) {
-                    const container = document.getElementById('feed-container');
-                    container.innerHTML = '';
-                    items.forEach(vid => {
-                        const card = document.createElement('div');
-                        card.className = 'video-card';
-                        card.onclick = () => playVideo(vid.id, vid.title, vid.channel);
-                        card.innerHTML = `
-                            <div class="thumbnail-box">
-                                <img src="${vid.thumb}" alt="thumb">
-                                <div class="duration">${vid.duration}</div>
-                            </div>
-                            <div class="card-info">
-                                <div class="card-title">${vid.title}</div>
-                                <div class="card-channel">${vid.channel}</div>
-                            </div>
-                        `;
-                        container.appendChild(card);
-                    });
-                }
-
-                function loadShorts() {
-                    generateFeed(shortsDatabase);
-                    playVideo(shortsDatabase[0].id, shortsDatabase[0].title, shortsDatabase[0].channel);
-                }
-
-                window.onload = () => {
-                    generateFeed(videoDatabase);
-                };
-            </script>
-        </body>
-        </html>
-        EOF
-
-        # 7. MainActivity.java (FIXED: Clean explicit non-static view assignment)
-        cat << 'EOF' > src/main/java/com/fastchat/ytplayer/MainActivity.java
-        package com.fastchat.ytplayer;
-
-        import android.annotation.SuppressLint;
-        import android.os.Bundle;
-        import android.os.Handler;
-        import android.os.Looper;
-        import android.view.View;
-        import android.webkit.WebChromeClient;
-        import android.webkit.WebSettings;
-        import android.webkit.WebView;
-        import android.webkit.WebViewClient;
-        import androidx.appcompat.app.AppCompatActivity;
-
-        public class MainActivity extends AppCompatActivity {
-            private WebView webView;
-            private View splashScreen;
-
-            @SuppressLint("SetJavaScriptEnabled")
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_main);
-
-                webView = findViewById(R.id.youtube_webview);
-                splashScreen = findViewById(R.id.splash_screen);
-
-                WebSettings settings = webView.getSettings();
-                settings.setJavaScriptEnabled(true);
-                settings.setDomStorageEnabled(true);
-                settings.setMediaPlaybackRequiresUserGesture(false);
-                settings.setAllowFileAccess(true);
-                settings.setLoadsImagesAutomatically(true);
-
-                webView.setWebViewClient(new WebViewClient());
-                webView.setWebChromeClient(new WebChromeClient());
-                
-                webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-                webView.loadUrl("file:///android_asset/index.html");
-
-                // FIXED: Direct View state initialization to prevent static scope compilation error
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        splashScreen.setVisibility(View.GONE);
-                        webView.setVisibility(View.VISIBLE);
-                    }
-                }, 3500);
-            }
-
-            @Override
-            public void onBackPressed() {
-                if (webView != null && webView.canGoBack()) {
-                    webView.goBack();
-                } else {
-                    super.onBackPressed();
-                }
-            }
-
-            @Override
-            protected void onDestroy() {
-                if (webView != null) webView.destroy();
-                super.onDestroy();
-            }
-        }
-        EOF
-
-        # 8. Standard Resource Values
-        cat << 'EOF' > src/main/res/values/strings.xml
-        <resources><string name="app_name">PlayTube Pro</string></resources>
-        EOF
-
-    - name: 🏗️ Create Gradle Wrapper & Run Build
-      run: |
-        gradle wrapper --gradle-version 8.4
-        chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon
-
-    - name: 🔍 Locate and Stage APK
-      run: |
-        mkdir -p final-apk/
-        find . -name "*.apk" -exec cp {} final-apk/playtube-pro.apk \;
-        ls -la final-apk/
-
-    - name: Deliver APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: Custom-YouTube-Player
-        path: final-apk/playtube-pro.apk
+      - name: Upload Built APK File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Custom-AdBlocker-VPN-APK
+          path: my-adblocker-app/app/build/outputs/apk/debug/*.apk
