@@ -43,7 +43,7 @@ jobs:
         rootProject.name = "AdvancedRecorder"
         EOF
 
-        # 3. Build.gradle (Stable Target Configurations)
+        # 3. Build.gradle
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2'
@@ -67,13 +67,14 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Proper Foreground Service Types Declarations)
+        # 4. AndroidManifest.xml (Added POST_NOTIFICATIONS for Android 13+)
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
             <application
                 android:label="🛡️ Ultra Recorder Pro"
@@ -97,7 +98,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (Simple Android layout config)
+        # 5. UI Layout
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -148,7 +149,7 @@ jobs:
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="If premium streaming apps show black screen due to OS constraints, enable 'Disable HW Overlays' in developer options to force hardware layer capturing."
+                    android:text="Please grant Notification & Audio permissions first. If Netflix shows a black screen, toggle 'Disable HW Overlays' in your developer settings."
                     android:textColor="#94a3b8"
                     android:textSize="13sp"
                     android:layout_marginTop="6dp"/>
@@ -171,7 +172,7 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java (CRASH FIX: Instant notification deployment inside onCreate)
+        # 6. RecordService.java (STABLE CRASH FIX: Handles Static Token Transfers safely)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
         package com.fastchat.recorder;
 
@@ -179,14 +180,12 @@ jobs:
         import android.app.NotificationChannel;
         import android.app.NotificationManager;
         import android.app.Service;
-        import android.content.Context;
         import android.content.Intent;
         import android.content.pm.ServiceInfo;
         import android.hardware.display.DisplayManager;
         import android.hardware.display.VirtualDisplay;
         import android.media.MediaRecorder;
         import android.media.projection.MediaProjection;
-        import android.media.projection.MediaProjectionManager;
         import android.os.Build;
         import android.os.IBinder;
         import android.util.DisplayMetrics;
@@ -197,7 +196,7 @@ jobs:
 
         public class RecordService extends Service {
             private static final String CHANNEL_ID = "RecorderChannel";
-            private MediaProjection mediaProjection;
+            public static MediaProjection staticProjection; // Avoid intent pass failures
             private MediaRecorder mediaRecorder;
             private VirtualDisplay virtualDisplay;
 
@@ -211,12 +210,11 @@ jobs:
                 
                 Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                         .setContentTitle("Ultra Recorder Running")
-                        .setContentText("Bypass screen processing active...")
+                        .setContentText("Screen capturing layer active...")
                         .setSmallIcon(android.R.drawable.presence_video_online)
                         .setPriority(NotificationCompat.PRIORITY_MAX)
                         .build();
 
-                // CRASH FIX: Immediate foreground attachment with explicit target service types
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
                 } else {
@@ -226,18 +224,11 @@ jobs:
 
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
-                if (intent == null) return START_NOT_STICKY;
-                
-                int resultCode = intent.getIntExtra("resultCode", -1);
-                Intent data = intent.getParcelableExtra("data");
-
-                if (resultCode != -1 && data != null) {
-                    MediaProjectionManager mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-                    if (mpManager != null) {
-                        mediaProjection = mpManager.getMediaProjection(resultCode, data);
-                        setupRecorder();
-                        startRecording();
-                    }
+                if (staticProjection != null) {
+                    setupRecorder();
+                    startRecording();
+                } else {
+                    stopSelf();
                 }
                 return START_NOT_STICKY;
             }
@@ -267,9 +258,9 @@ jobs:
             private void startRecording() {
                 WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
                 DisplayMetrics metrics = new DisplayMetrics();
-                if (windowManager != null) {
+                if (windowManager != null && staticProjection != null) {
                     windowManager.getDefaultDisplay().getMetrics(metrics);
-                    virtualDisplay = mediaProjection.createVirtualDisplay(
+                    virtualDisplay = staticProjection.createVirtualDisplay(
                             "BypassDisplay", 1280, 720, metrics.densityDpi,
                             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                             mediaRecorder.getSurface(), null, null
@@ -303,15 +294,19 @@ jobs:
                         mediaRecorder.release();
                     }
                     if (virtualDisplay != null) virtualDisplay.release();
-                    if (mediaProjection != null) mediaProjection.stop();
+                    if (staticProjection != null) {
+                        staticProjection.stop();
+                        staticProjection = null;
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+        import android.content.Context;
         EOF
 
-        # 7. MainActivity.java (Permission validation logic)
+        # 7. MainActivity.java (STABLE CRASH FIX: Explicit runtime permissions handling)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
         package com.fastchat.recorder;
 
@@ -329,6 +324,8 @@ jobs:
         import androidx.core.app.ActivityCompat;
         import androidx.core.content.ContextCompat;
         import com.google.android.material.button.MaterialButton;
+        import java.util.ArrayList;
+        import java.util.List;
 
         public class MainActivity extends AppCompatActivity {
             private static final int PERMISSION_REQ_CODE = 202;
@@ -362,8 +359,22 @@ jobs:
             }
 
             private void checkAndRequestPermissions() {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQ_CODE);
+                List<String> permissions = new ArrayList<>();
+                permissions.add(Manifest.permission.RECORD_AUDIO);
+                
+                // CRASH FIX: Dynamic Notification permission for Android 13+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+                }
+
+                List<String> listPermissionsNeeded = new ArrayList<>();
+                for (String perm : permissions) {
+                    if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                        listPermissionsNeeded.add(perm);
+                    }
+                }
+                if (!listPermissionsNeeded.isEmpty()) {
+                    ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[0]), PERMISSION_REQ_CODE);
                 }
             }
 
@@ -377,10 +388,13 @@ jobs:
             protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                 super.onActivityResult(requestCode, requestCode, data);
                 if (requestCode == SCREEN_RECORD_REQ_CODE && resultCode == RESULT_OK && data != null) {
-                    Intent serviceIntent = new Intent(this, RecordService.class);
-                    serviceIntent.putExtra("resultCode", resultCode);
-                    serviceIntent.putExtra("data", data);
                     
+                    // CRASH FIX: Assign projection token immediately inside activity scope
+                    if (mpManager != null) {
+                        RecordService.staticProjection = mpManager.getMediaProjection(resultCode, data);
+                    }
+
+                    Intent serviceIntent = new Intent(this, RecordService.class);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         startForegroundService(serviceIntent);
                     } else {
@@ -392,7 +406,7 @@ jobs:
                     btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
                     txtStatus.setText("Status: Recording Active 🟢");
                 } else {
-                    Toast.makeText(this, "Permission denied by user", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Permission denied!", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -403,8 +417,8 @@ jobs:
                 isRecording = false;
                 btnAction.setText("START\nRECORDING");
                 btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444));
-                txtStatus.setText("Status: Recording Saved Successfully");
-                Toast.makeText(this, "File saved to app directory!", Toast.LENGTH_SHORT).show();
+                txtStatus.setText("Status: Saved to App Folder");
+                Toast.makeText(this, "Saved successfully!", Toast.LENGTH_SHORT).show();
             }
         }
         EOF
