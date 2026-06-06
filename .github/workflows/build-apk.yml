@@ -32,7 +32,7 @@ jobs:
         run: |
           cat << 'EOF' > my-adblocker-app/build.gradle
           plugins {
-              id 'com.android.application' version '8.1.1' apply false
+              id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
@@ -128,7 +128,6 @@ jobs:
                              .addAddress("10.0.0.1", 24)
                              .addRoute("0.0.0.0", 0);
                       
-                      // Auto route traffic through AdGuard Ad-blocking DNS
                       builder.addDnsServer("94.140.14.14");
                       builder.addDnsServer("94.140.15.15");
 
@@ -216,16 +215,26 @@ jobs:
           }
           EOF
 
-      - name: Set up JDK 17
+      - name: Setup Setup-Java with Gradle Built-in
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up specific Gradle Wrapper version
+        run: |
+          cd my-adblocker-app
+          # Is baar hum proper wrapper file setup kar rahe hain taaki naye gradle se conflict na ho
+          wget https://services.gradle.org/distributions/gradle-8.2-bin.zip
+          unzip -q gradle-8.2-bin.zip
+          mv gradle-8.2/bin/gradle ./gradle
+          chmod +x ./gradle
+          ./gradle wrapper --gradle-version 8.2 --distribution-type bin
 
       - name: Build Custom AdBlocker APK
         run: |
           cd my-adblocker-app
-          gradle wrapper --gradle-version 8.2
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
