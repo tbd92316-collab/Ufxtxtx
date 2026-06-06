@@ -67,7 +67,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Added POST_NOTIFICATIONS for Android 13+)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
@@ -98,7 +98,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout
+        # 5. UI Layout (FIXED: '&' replaced with XML friendly '&amp;')
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -149,7 +149,7 @@ jobs:
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Please grant Notification & Audio permissions first. If Netflix shows a black screen, toggle 'Disable HW Overlays' in your developer settings."
+                    android:text="Please grant Notification and Audio permissions first. If Netflix shows a black screen, toggle 'Disable HW Overlays' in your developer settings."
                     android:textColor="#94a3b8"
                     android:textSize="13sp"
                     android:layout_marginTop="6dp"/>
@@ -172,7 +172,7 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java (STABLE CRASH FIX: Handles Static Token Transfers safely)
+        # 6. RecordService.java
         cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
         package com.fastchat.recorder;
 
@@ -180,6 +180,7 @@ jobs:
         import android.app.NotificationChannel;
         import android.app.NotificationManager;
         import android.app.Service;
+        import android.content.Context;
         import android.content.Intent;
         import android.content.pm.ServiceInfo;
         import android.hardware.display.DisplayManager;
@@ -196,7 +197,7 @@ jobs:
 
         public class RecordService extends Service {
             private static final String CHANNEL_ID = "RecorderChannel";
-            public static MediaProjection staticProjection; // Avoid intent pass failures
+            public static MediaProjection staticProjection;
             private MediaRecorder mediaRecorder;
             private VirtualDisplay virtualDisplay;
 
@@ -303,10 +304,9 @@ jobs:
                 }
             }
         }
-        import android.content.Context;
         EOF
 
-        # 7. MainActivity.java (STABLE CRASH FIX: Explicit runtime permissions handling)
+        # 7. MainActivity.java
         cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
         package com.fastchat.recorder;
 
@@ -362,7 +362,6 @@ jobs:
                 List<String> permissions = new ArrayList<>();
                 permissions.add(Manifest.permission.RECORD_AUDIO);
                 
-                // CRASH FIX: Dynamic Notification permission for Android 13+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissions.add(Manifest.permission.POST_NOTIFICATIONS);
                 }
@@ -389,7 +388,6 @@ jobs:
                 super.onActivityResult(requestCode, requestCode, data);
                 if (requestCode == SCREEN_RECORD_REQ_CODE && resultCode == RESULT_OK && data != null) {
                     
-                    // CRASH FIX: Assign projection token immediately inside activity scope
                     if (mpManager != null) {
                         RecordService.staticProjection = mpManager.getMediaProjection(resultCode, data);
                     }
