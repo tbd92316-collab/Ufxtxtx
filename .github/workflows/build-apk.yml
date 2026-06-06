@@ -1,4 +1,4 @@
-name: Build Advanced Screen Recorder
+name: Build Custom YouTube Player App
 
 on:
   push:
@@ -18,9 +18,9 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: ⚙️ Setup Directory Structure & Permissions
+    - name: ⚙️ Setup Directory Structure & Assets
       run: |
-        mkdir -p src/main/java/com/fastchat/recorder/
+        mkdir -p src/main/java/com/fastchat/ytplayer/
         mkdir -p src/main/res/layout/
         mkdir -p src/main/res/values/
         mkdir -p src/main/assets/
@@ -40,21 +40,21 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        rootProject.name = "AdvancedRecorder"
+        rootProject.name = "CustomYTPlayer"
         EOF
 
-        # 3. Build.gradle
+        # 3. Build.gradle (Hardware layer integration)
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2'
         }
 
         android {
-            namespace 'com.fastchat.recorder'
+            namespace 'com.fastchat.ytplayer'
             compileSdk 34
             defaultConfig {
-                applicationId 'com.fastchat.recorder'
-                minSdk 26
+                applicationId 'com.fastchat.ytplayer'
+                minSdk 24
                 targetSdk 34
                 versionCode 1
                 versionName "1.0"
@@ -67,21 +67,20 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml
+        # 4. AndroidManifest.xml (Internet permission with orientation configurations)
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
-            <uses-permission android:name="android.permission.RECORD_AUDIO" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
             <application
-                android:label="🛡️ Ultra Recorder Pro"
+                android:label="🔴 PlayTube Pro"
                 android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
                 android:hardwareAccelerated="true">
                 
-                <activity android:name="com.fastchat.recorder.MainActivity"
+                <activity android:name="com.fastchat.ytplayer.MainActivity"
+                    android:configChanges="orientation|screenSize|keyboardHidden"
                     android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
@@ -89,341 +88,303 @@ jobs:
                     </intent-filter>
                 </activity>
 
-                <service 
-                    android:name="com.fastchat.recorder.RecordService"
-                    android:foregroundServiceType="mediaProjection"
-                    android:exported="false" />
-
             </application>
         </manifest>
         EOF
 
-        # 5. UI Layout (FIXED: '&' replaced with XML friendly '&amp;')
+        # 5. UI Layout (Splash View Layer + Main Content WebView Layer)
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#0f172a"
-            android:padding="24dp">
+            android:background="#0f0f0f">
 
-            <TextView
-                android:id="@+id/txt_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛡️ Ultra Recorder Pro"
-                android:textColor="#f8fafc"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="20dp"/>
-
-            <TextView
-                android:id="@+id/txt_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Status: Ready to Record"
-                android:textColor="#38bdf8"
-                android:textSize="16sp"
-                android:layout_below="@id/txt_title"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="8dp"/>
-
-            <LinearLayout
-                android:id="@+id/info_box"
+            <android.webkit.WebView
+                android:id="@+id/youtube_webview"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#1e293b"
-                android:padding="16dp"
-                android:layout_below="@id/txt_status"
-                android:layout_marginTop="40dp">
+                android:layout_height="match_parent"
+                android:visibility="gone" />
 
-                <TextView
+            <RelativeLayout
+                android:id="@+id/splash_screen"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#0f0f0f">
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⚡ Anti-Restriction Engine Active"
-                    android:textColor="#22c55e"
-                    android:textStyle="bold"
-                    android:textSize="15sp"/>
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_centerInParent="true">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Please grant Notification and Audio permissions first. If Netflix shows a black screen, toggle 'Disable HW Overlays' in your developer settings."
-                    android:textColor="#94a3b8"
-                    android:textSize="13sp"
-                    android:layout_marginTop="6dp"/>
-            </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▶️ YouTube"
+                        android:textColor="#ffffff"
+                        android:textSize="38sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.02"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_action"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:layout_centerInParent="true"
-                android:text="START\nRECORDING"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#ffffff"
-                android:backgroundTint="#ef4444"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:gravity="center" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Custom Premium Engine"
+                        android:textColor="#ff0000"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="10dp"
+                        android:letterSpacing="0.1"/>
+
+                    <ProgressBar
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="40dp"
+                        android:indeterminateTint="#ff0000" />
+
+                </LinearLayout>
+
+            </RelativeLayout>
 
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java
-        cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
-        package com.fastchat.recorder;
-
-        import android.app.Notification;
-        import android.app.NotificationChannel;
-        import android.app.NotificationManager;
-        import android.app.Service;
-        import android.content.Context;
-        import android.content.Intent;
-        import android.content.pm.ServiceInfo;
-        import android.hardware.display.DisplayManager;
-        import android.hardware.display.VirtualDisplay;
-        import android.media.MediaRecorder;
-        import android.media.projection.MediaProjection;
-        import android.os.Build;
-        import android.os.IBinder;
-        import android.util.DisplayMetrics;
-        import android.view.WindowManager;
-        import androidx.core.app.NotificationCompat;
-        import java.io.File;
-        import java.io.IOException;
-
-        public class RecordService extends Service {
-            private static final String CHANNEL_ID = "RecorderChannel";
-            public static MediaProjection staticProjection;
-            private MediaRecorder mediaRecorder;
-            private VirtualDisplay virtualDisplay;
-
-            @Override
-            public IBinder onBind(Intent intent) { return null; }
-
-            @Override
-            public void onCreate() {
-                super.onCreate();
-                createNotificationChannel();
+        # 6. High-Tech Backend UI Script (Embeds YouTube IFrame Player API and Custom Feeds)
+        cat << 'EOF' > src/main/assets/index.html
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>PlayTube Custom UI</title>
+            <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { background: #0f0f0f; color: #fff; font-family: 'Roboto', sans-serif; overflow-x: hidden; padding-bottom: 70px; }
                 
-                Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle("Ultra Recorder Running")
-                        .setContentText("Screen capturing layer active...")
-                        .setSmallIcon(android.R.drawable.presence_video_online)
-                        .setPriority(NotificationCompat.PRIORITY_MAX)
-                        .build();
+                /* Premium Header */
+                .header { position: sticky; top: 0; background: #0f0f0f; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; z-index: 100; border-bottom: 1px solid #212121; }
+                .logo { display: flex; align-items: center; font-size: 20px; font-weight: bold; color: #fff; gap: 6px; }
+                .logo span { background: #ff0000; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-                } else {
-                    startForeground(101, notification);
-                }
-            }
+                /* Main Dynamic Player Window */
+                .video-player-container { position: sticky; top: 49px; width: 100%; aspect-ratio: 16/9; background: #000; z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+                iframe { width: 100%; height: 100%; border: none; }
 
-            @Override
-            public int onStartCommand(Intent intent, int flags, int startId) {
-                if (staticProjection != null) {
-                    setupRecorder();
-                    startRecording();
-                } else {
-                    stopSelf();
-                }
-                return START_NOT_STICKY;
-            }
+                /* Video Meta Data Details */
+                .video-details { padding: 14px; border-bottom: 1px solid #212121; }
+                .video-title { font-size: 16px; font-weight: 500; line-height: 1.4; margin-bottom: 8dp; color: #f1f1f1; }
+                .video-stats { font-size: 12px; color: #aaa; }
 
-            private void setupRecorder() {
-                mediaRecorder = new MediaRecorder();
-                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-
-                File file = new File(getExternalFilesDir(null), "Screen_Record_" + System.currentTimeMillis() + ".mp4");
-                mediaRecorder.setOutputFile(file.getAbsolutePath());
+                /* Scrollable Custom Video Grid Feed */
+                .feed-section { padding: 12px; }
+                .feed-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #ff0000; text-transform: uppercase; letter-spacing: 0.5px;}
                 
-                mediaRecorder.setVideoSize(1280, 720);
-                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-                mediaRecorder.setVideoEncodingBitRate(6000000);
-                mediaRecorder.setVideoFrameRate(30);
+                .video-card { display: flex; gap: 12px; margin-bottom: 16px; background: #171717; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+                .video-card:active { background: #222; }
+                .thumbnail-box { position: relative; width: 130px; aspect-ratio: 16/9; background: #333; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+                .thumbnail-box img { width: 100%; height: 100%; object-fit: cover; }
+                .duration { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); font-size: 10px; padding: 1px 4px; border-radius: 3px; }
+                
+                .card-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+                .card-title { font-size: 13px; font-weight: 500; max-height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #f1f1f1; line-height: 1.3;}
+                .card-channel { font-size: 11px; color: #aaa; margin-top: 4px; }
 
-                try {
-                    mediaRecorder.prepare();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                /* Bottom Sticky Navigation */
+                .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 56px; background: #0f0f0f; border-top: 1px solid #212121; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+                .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #aaa; text-decoration: none; }
+                .nav-item.active { color: #ff0000; }
+                .nav-icon { font-size: 18px; margin-bottom: 2px; }
+            </style>
+        </head>
+        <body>
+
+            <div class="header">
+                <div class="logo">🔴 PlayTube <span>PRO</span></div>
+            </div>
+
+            <div class="video-player-container">
+                <div id="player"></div>
+            </div>
+
+            <div class="video-details">
+                <div class="video-title" id="current-title">Loading system streams...</div>
+                <div class="video-stats" id="current-stats">Trending No.1 • 60FPS Stream Engine</div>
+            </div>
+
+            <div class="feed-section">
+                <div class="feed-title">⚡ Recommendation Feed (Auto-API)</div>
+                <div id="feed-container"></div>
+            </div>
+
+            <div class="bottom-nav">
+                <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
+                <div class="nav-item" onclick="loadShorts()"><div class="nav-icon">🔥</div>Shorts</div>
+                <div class="nav-item"><div class="nav-icon">📁</div>Library</div>
+            </div>
+
+            <script>
+                // Fallback default high-quality public domain/open YouTube videos list
+                const videoDatabase = [
+                    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up (Official Music Video)', channel: 'Rick Astley', duration: '3:33', thumb: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
+                    { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE(강남스타일) M/V', channel: 'PSY', duration: '4:12', thumb: 'https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg' },
+                    { id: 'jNQXAC9IVRw', title: 'Me at the zoo - First Ever YouTube Video', channel: 'jawed', duration: '0:19', thumb: 'https://img.youtube.com/vi/jNQXAC9IVRw/mqdefault.jpg' },
+                    { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee', channel: 'Luis Fonsi', duration: '4:42', thumb: 'https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg' },
+                    { id: 'ScMzIvxBSi4', title: 'Amazing Beautiful Earth 4K Relaxing Video', channel: 'Nature Flows', duration: '5:00', thumb: 'https://img.youtube.com/vi/ScMzIvxBSi4/mqdefault.jpg' }
+                ];
+
+                const shortsDatabase = [
+                    { id: '34Na4j8AVgA', title: 'Insane Tech Gadgets You Need Now! #shorts', channel: 'TechShorts', duration: '0:45', thumb: 'https://img.youtube.com/vi/34Na4j8AVgA/mqdefault.jpg' },
+                    { id: 'tpee887W80A', title: 'World Ultimate Speed Car Racing Simulator #shorts', channel: 'NitroSpeed', duration: '0:58', thumb: 'https://img.youtube.com/vi/tpee887W80A/mqdefault.jpg' }
+                ];
+
+                // Load YouTube IFrame Player Script API asynchronously
+                var tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                var firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+                var player;
+                function onYouTubeIframeAPIReady() {
+                    player = new YT.Player('player', {
+                        videoId: videoDatabase[0].id,
+                        playerVars: {
+                            'playsinline': 1,
+                            'controls': 1,
+                            'rel': 0,
+                            'modestbranding': 1
+                        },
+                        events: {
+                            'onReady': onPlayerReady
+                        }
+                    });
                 }
-            }
 
-            private void startRecording() {
-                WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-                DisplayMetrics metrics = new DisplayMetrics();
-                if (windowManager != null && staticProjection != null) {
-                    windowManager.getDefaultDisplay().getMetrics(metrics);
-                    virtualDisplay = staticProjection.createVirtualDisplay(
-                            "BypassDisplay", 1280, 720, metrics.densityDpi,
-                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                            mediaRecorder.getSurface(), null, null
-                    );
-                    try {
-                        mediaRecorder.start();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                function onPlayerReady(event) {
+                    updatePlayerMetadata(videoDatabase[0].title, videoDatabase[0].channel);
+                }
+
+                function playVideo(id, title, channel) {
+                    if(player && player.loadVideoById) {
+                        player.loadVideoById(id);
+                        updatePlayerMetadata(title, channel);
+                        window.scrollTo({top: 0, behavior: 'smooth'});
                     }
                 }
-            }
 
-            private void createNotificationChannel() {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    NotificationChannel serviceChannel = new NotificationChannel(
-                            CHANNEL_ID, "Screen Recorder Channel",
-                            NotificationManager.IMPORTANCE_HIGH
-                    );
-                    NotificationManager manager = getSystemService(NotificationManager.class);
-                    if (manager != null) manager.createNotificationChannel(serviceChannel);
+                function updatePlayerMetadata(title, channel) {
+                    document.getElementById('current-title').innerText = title;
+                    document.getElementById('current-stats').innerText = channel + " • 582K Views • Just Now";
                 }
-            }
 
-            @Override
-            public void onDestroy() {
-                super.onDestroy();
-                try {
-                    if (mediaRecorder != null) {
-                        mediaRecorder.stop();
-                        mediaRecorder.reset();
-                        mediaRecorder.release();
-                    }
-                    if (virtualDisplay != null) virtualDisplay.release();
-                    if (staticProjection != null) {
-                        staticProjection.stop();
-                        staticProjection = null;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+                function generateFeed(items) {
+                    const container = document.getElementById('feed-container');
+                    container.innerHTML = '';
+                    items.forEach(vid => {
+                        const card = document.createElement('div');
+                        card.className = 'video-card';
+                        card.onclick = () => playVideo(vid.id, vid.title, vid.channel);
+                        card.innerHTML = `
+                            <div class="thumbnail-box">
+                                <img src="${vid.thumb}" alt="thumb">
+                                <div class="duration">${vid.duration}</div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-title">${vid.title}</div>
+                                <div class="card-channel">${vid.channel}</div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
                 }
-            }
-        }
+
+                function loadShorts() {
+                    generateFeed(shortsDatabase);
+                    playVideo(shortsDatabase[0].id, shortsDatabase[0].title, shortsDatabase[0].channel);
+                }
+
+                // Initial Execution
+                window.onload = () => {
+                    generateFeed(videoDatabase);
+                };
+            </script>
+        </body>
+        </html>
         EOF
 
-        # 7. MainActivity.java
-        cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
-        package com.fastchat.recorder;
+        # 7. MainActivity.java (Handles Full Hardware Acceleration & Splash Timer)
+        cat << 'EOF' > src/main/java/com/fastchat/ytplayer/MainActivity.java
+        package com.fastchat.ytplayer;
 
-        import android.Manifest;
-        import android.content.Context;
-        import android.content.Intent;
-        import android.content.pm.PackageManager;
-        import android.media.projection.MediaProjectionManager;
-        import android.os.Build;
+        import android.annotation.SuppressLint;
         import android.os.Bundle;
+        import android.os.Handler;
+        import android.os.Looper;
         import android.view.View;
-        import android.widget.TextView;
-        import android.widget.Toast;
+        import android.webkit.WebChromeClient;
+        import android.webkit.WebSettings;
+        import android.webkit.WebView;
+        import android.webkit.WebViewClient;
         import androidx.appcompat.app.AppCompatActivity;
-        import androidx.core.app.ActivityCompat;
-        import androidx.core.content.ContextCompat;
-        import com.google.android.material.button.MaterialButton;
-        import java.util.ArrayList;
-        import java.util.List;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int PERMISSION_REQ_CODE = 202;
-            private static final int SCREEN_RECORD_REQ_CODE = 303;
-            private boolean isRecording = false;
-            private MaterialButton btnAction;
-            private TextView txtStatus;
-            private MediaProjectionManager mpManager;
+            private WebView webView;
+            private View splashScreen;
 
+            @SuppressLint("SetJavaScriptEnabled")
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                btnAction = findViewById(R.id.btn_action);
-                txtStatus = findViewById(R.id.txt_status);
-                mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                webView = findViewById(R.id.youtube_webview);
+                splashScreen = findViewById(R.id.splash_screen);
 
-                checkAndRequestPermissions();
+                // Configure advanced hardware rendering layers
+                WebSettings settings = webView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setMediaPlaybackRequiresUserGesture(false);
+                settings.setAllowFileAccess(true);
+                settings.setLoadsImagesAutomatically(true);
 
-                btnAction.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (!isRecording) {
-                            startScreenCaptureRequest();
-                        } else {
-                            stopRecordingService();
-                        }
-                    }
-                });
-            }
-
-            private void checkAndRequestPermissions() {
-                List<String> permissions = new ArrayList<>();
-                permissions.add(Manifest.permission.RECORD_AUDIO);
+                webView.setWebViewClient(new WebViewClient());
+                webView.setWebChromeClient(new WebChromeClient());
                 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    permissions.add(Manifest.permission.POST_NOTIFICATIONS);
-                }
+                // Force GPU hardware acceleration layer
+                webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                webView.loadUrl("file:///android_asset/index.html");
 
-                List<String> listPermissionsNeeded = new ArrayList<>();
-                for (String perm : permissions) {
-                    if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
-                        listPermissionsNeeded.add(perm);
+                // Splash Screen Timer Logic: Removes splash after 3.5 seconds
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        splashScreen.setVisibility(View.GONE);
+                        webView.setVisibility(View.getSystemUiVisibility());
                     }
-                }
-                if (!listPermissionsNeeded.isEmpty()) {
-                    ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[0]), PERMISSION_REQ_CODE);
-                }
+                }, 3500);
             }
 
-            private void startScreenCaptureRequest() {
-                if (mpManager != null) {
-                    startActivityForResult(mpManager.createScreenCaptureIntent(), SCREEN_RECORD_REQ_CODE);
+            @Override
+            public void onBackPressed() {
+                if (webView != null && webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    super.onBackPressed();
                 }
             }
 
             @Override
-            protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                super.onActivityResult(requestCode, requestCode, data);
-                if (requestCode == SCREEN_RECORD_REQ_CODE && resultCode == RESULT_OK && data != null) {
-                    
-                    if (mpManager != null) {
-                        RecordService.staticProjection = mpManager.getMediaProjection(resultCode, data);
-                    }
-
-                    Intent serviceIntent = new Intent(this, RecordService.class);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent);
-                    } else {
-                        startService(serviceIntent);
-                    }
-
-                    isRecording = true;
-                    btnAction.setText("STOP\nRECORDING");
-                    btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
-                    txtStatus.setText("Status: Recording Active 🟢");
-                } else {
-                    Toast.makeText(this, "Permission denied!", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            private void stopRecordingService() {
-                Intent serviceIntent = new Intent(this, RecordService.class);
-                stopService(serviceIntent);
-                
-                isRecording = false;
-                btnAction.setText("START\nRECORDING");
-                btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444));
-                txtStatus.setText("Status: Saved to App Folder");
-                Toast.makeText(this, "Saved successfully!", Toast.LENGTH_SHORT).show();
+            protected void onDestroy() {
+                if (webView != null) webView.destroy();
+                super.onDestroy();
             }
         }
         EOF
 
-        # 8. Resources Setup
+        # 8. Standard Resource Values
         cat << 'EOF' > src/main/res/values/strings.xml
-        <resources><string name="app_name">Ultra Recorder Pro</string></resources>
+        <resources><string name="app_name">PlayTube Pro</string></resources>
         EOF
 
     - name: 🏗️ Create Gradle Wrapper & Run Build
@@ -435,11 +396,11 @@ jobs:
     - name: 🔍 Locate and Stage APK
       run: |
         mkdir -p final-apk/
-        find . -name "*.apk" -exec cp {} final-apk/advanced-recorder.apk \;
+        find . -name "*.apk" -exec cp {} final-apk/playtube-pro.apk \;
         ls -la final-apk/
 
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: Advanced-Screen-Recorder
-        path: final-apk/advanced-recorder.apk
+        name: Custom-YouTube-Player
+        path: final-apk/playtube-pro.apk
