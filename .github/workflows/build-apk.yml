@@ -43,7 +43,7 @@ jobs:
         rootProject.name = "CustomYTPlayer"
         EOF
 
-        # 3. Build.gradle (Hardware layer integration)
+        # 3. Build.gradle
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '8.2.2'
@@ -67,7 +67,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Internet permission with orientation configurations)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
@@ -92,7 +92,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (Splash View Layer + Main Content WebView Layer)
+        # 5. UI Layout
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -150,7 +150,7 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. High-Tech Backend UI Script (Embeds YouTube IFrame Player API and Custom Feeds)
+        # 6. Web Interface System (index.html)
         cat << 'EOF' > src/main/assets/index.html
         <!DOCTYPE html>
         <html lang="en">
@@ -161,36 +161,24 @@ jobs:
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 body { background: #0f0f0f; color: #fff; font-family: 'Roboto', sans-serif; overflow-x: hidden; padding-bottom: 70px; }
-                
-                /* Premium Header */
                 .header { position: sticky; top: 0; background: #0f0f0f; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; z-index: 100; border-bottom: 1px solid #212121; }
                 .logo { display: flex; align-items: center; font-size: 20px; font-weight: bold; color: #fff; gap: 6px; }
                 .logo span { background: #ff0000; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
-
-                /* Main Dynamic Player Window */
                 .video-player-container { position: sticky; top: 49px; width: 100%; aspect-ratio: 16/9; background: #000; z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
                 iframe { width: 100%; height: 100%; border: none; }
-
-                /* Video Meta Data Details */
                 .video-details { padding: 14px; border-bottom: 1px solid #212121; }
-                .video-title { font-size: 16px; font-weight: 500; line-height: 1.4; margin-bottom: 8dp; color: #f1f1f1; }
+                .video-title { font-size: 16px; font-weight: 500; line-height: 1.4; margin-bottom: 8px; color: #f1f1f1; }
                 .video-stats { font-size: 12px; color: #aaa; }
-
-                /* Scrollable Custom Video Grid Feed */
                 .feed-section { padding: 12px; }
                 .feed-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #ff0000; text-transform: uppercase; letter-spacing: 0.5px;}
-                
                 .video-card { display: flex; gap: 12px; margin-bottom: 16px; background: #171717; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
                 .video-card:active { background: #222; }
                 .thumbnail-box { position: relative; width: 130px; aspect-ratio: 16/9; background: #333; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
                 .thumbnail-box img { width: 100%; height: 100%; object-fit: cover; }
                 .duration { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); font-size: 10px; padding: 1px 4px; border-radius: 3px; }
-                
                 .card-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
                 .card-title { font-size: 13px; font-weight: 500; max-height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #f1f1f1; line-height: 1.3;}
                 .card-channel { font-size: 11px; color: #aaa; margin-top: 4px; }
-
-                /* Bottom Sticky Navigation */
                 .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 56px; background: #0f0f0f; border-top: 1px solid #212121; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
                 .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #aaa; text-decoration: none; }
                 .nav-item.active { color: #ff0000; }
@@ -224,7 +212,6 @@ jobs:
             </div>
 
             <script>
-                // Fallback default high-quality public domain/open YouTube videos list
                 const videoDatabase = [
                     { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up (Official Music Video)', channel: 'Rick Astley', duration: '3:33', thumb: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg' },
                     { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE(강남스타일) M/V', channel: 'PSY', duration: '4:12', thumb: 'https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg' },
@@ -238,7 +225,6 @@ jobs:
                     { id: 'tpee887W80A', title: 'World Ultimate Speed Car Racing Simulator #shorts', channel: 'NitroSpeed', duration: '0:58', thumb: 'https://img.youtube.com/vi/tpee887W80A/mqdefault.jpg' }
                 ];
 
-                // Load YouTube IFrame Player Script API asynchronously
                 var tag = document.createElement('script');
                 tag.src = "https://www.youtube.com/iframe_api";
                 var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -303,7 +289,6 @@ jobs:
                     playVideo(shortsDatabase[0].id, shortsDatabase[0].title, shortsDatabase[0].channel);
                 }
 
-                // Initial Execution
                 window.onload = () => {
                     generateFeed(videoDatabase);
                 };
@@ -312,7 +297,7 @@ jobs:
         </html>
         EOF
 
-        # 7. MainActivity.java (Handles Full Hardware Acceleration & Splash Timer)
+        # 7. MainActivity.java (FIXED: Clean explicit non-static view assignment)
         cat << 'EOF' > src/main/java/com/fastchat/ytplayer/MainActivity.java
         package com.fastchat.ytplayer;
 
@@ -340,7 +325,6 @@ jobs:
                 webView = findViewById(R.id.youtube_webview);
                 splashScreen = findViewById(R.id.splash_screen);
 
-                // Configure advanced hardware rendering layers
                 WebSettings settings = webView.getSettings();
                 settings.setJavaScriptEnabled(true);
                 settings.setDomStorageEnabled(true);
@@ -351,16 +335,15 @@ jobs:
                 webView.setWebViewClient(new WebViewClient());
                 webView.setWebChromeClient(new WebChromeClient());
                 
-                // Force GPU hardware acceleration layer
                 webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 webView.loadUrl("file:///android_asset/index.html");
 
-                // Splash Screen Timer Logic: Removes splash after 3.5 seconds
+                // FIXED: Direct View state initialization to prevent static scope compilation error
                 new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         splashScreen.setVisibility(View.GONE);
-                        webView.setVisibility(View.getSystemUiVisibility());
+                        webView.setVisibility(View.VISIBLE);
                     }
                 }, 3500);
             }
