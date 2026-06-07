@@ -1,245 +1,415 @@
-name: Create and Build Custom AdBlocker APK
+name: Build Screen Recorder App
 
 on:
-  workflow_dispatch: # GitHub dashboard par click karte hi chalega
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch: 
 
 jobs:
-  build-from-scratch:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Initialize Empty Directory
-        run: |
-          mkdir -p my-adblocker-app/app/src/main/java/com/my/adblocker
-          mkdir -p my-adblocker-app/app/src/main/res/values
-          cd my-adblocker-app
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Create Settings Gradle
-        run: |
-          cat << 'EOF' > my-adblocker-app/settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "CustomAdBlocker"
-          include ':app'
-          EOF
+    - name: Setup JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      - name: Create Project Build Gradle
-        run: |
-          cat << 'EOF' > my-adblocker-app/build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
-          }
-          EOF
+    - name: ⚙️ Setup Directory Structure & Permissions
+      run: |
+        mkdir -p src/main/java/com/fastchat/recorder/
+        mkdir -p src/main/res/layout/
+        mkdir -p src/main/res/values/
 
-      - name: Create App Module Build Gradle
-        run: |
-          cat << 'EOF' > my-adblocker-app/app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.my.adblocker'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.my.adblocker"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              buildTypes {
-                  release { minifyEnabled false }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
+        # 1. Gradle Properties
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
 
-      - name: Create Android Manifest
-        run: |
-          cat << 'EOF' > my-adblocker-app/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <application
-                  android:allowBackup="true"
-                  android:label="My AdBlocker VPN"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-                  <service android:name=".LocalVpnService"
-                      android:permission="android.permission.BIND_VPN_SERVICE"
-                      android:exported="false">
-                      <intent-filter>
-                          <action android:name="android.net.VpnService" />
-                      </intent-filter>
-                  </service>
-              </application>
-          </manifest>
-          EOF
+        # 2. Settings.gradle
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories { google(); mavenCentral(); gradlePluginPortal() }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories { google(); mavenCentral() }
+        }
+        rootProject.name = "ScreenRecorder"
+        EOF
 
-      - name: Create LocalVpnService (Core VPN Engine)
-        run: |
-          cat << 'EOF' > my-adblocker-app/app/src/main/java/com/my/adblocker/LocalVpnService.java
-          package com.my.adblocker;
+        # 3. Build.gradle
+        cat << 'EOF' > build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.2'
+        }
 
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.ParcelFileDescriptor;
-          import android.util.Log;
-          import java.io.IOException;
+        android {
+            namespace 'com.fastchat.recorder'
+            compileSdk 34
+            defaultConfig {
+                applicationId 'com.fastchat.recorder'
+                minSdk 26
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+        }
 
-          public class LocalVpnService extends VpnService implements Runnable {
-              private Thread mThread;
-              private ParcelFileDescriptor mInterface;
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+        }
+        EOF
 
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
-                  if (mThread != null) { mThread.interrupt(); }
-                  mThread = new Thread(this, "LocalVpnThread");
-                  mThread.start();
-                  return START_STICKY;
-              }
+        # 4. AndroidManifest.xml (Includes Required Android 14 Foreground Types)
+        cat << 'EOF' > src/main/AndroidManifest.xml
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-              @Override
-              public void onDestroy() {
-                  if (mThread != null) { mThread.interrupt(); }
-                  closeInterface();
-                  super.onDestroy();
-              }
+            <application
+                android:label="🎥 PlayRecorder Pro"
+                android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+                android:hardwareAccelerated="true">
+                
+                <activity android:name="com.fastchat.recorder.MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
 
-              @Override
-              public void run() {
-                  try {
-                      Builder builder = new Builder();
-                      builder.setSession("MyAdBlocker")
-                             .addAddress("10.0.0.1", 24)
-                             .addRoute("0.0.0.0", 0);
-                      
-                      builder.addDnsServer("94.140.14.14");
-                      builder.addDnsServer("94.140.15.15");
+                <service 
+                    android:name="com.fastchat.recorder.RecordService"
+                    android:foregroundServiceType="mediaProjection"
+                    android:exported="false" />
 
-                      mInterface = builder.establish();
-                      while (!Thread.interrupted()) {
-                          Thread.sleep(2000);
-                      }
-                  } catch (Exception e) {
-                      Log.e("VPN", "Error", e);
-                  } finally {
-                      closeInterface();
-                  }
-              }
+            </application>
+        </manifest>
+        EOF
 
-              private void closeInterface() {
-                  try {
-                      if (mInterface != null) { mInterface.close(); mInterface = null; }
-                  } catch (IOException e) {
-                      Log.e("VPN", "Close Error", e);
-                  }
-              }
-          }
-          EOF
+        # 5. UI Layout (activity_main.xml)
+        cat << 'EOF' > src/main/res/layout/activity_main.xml
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0f172a"
+            android:padding="24dp">
 
-      - name: Create MainActivity UI Code
-        run: |
-          cat << 'EOF' > my-adblocker-app/app/src/main/java/com/my/adblocker/MainActivity.java
-          package com.my.adblocker;
+            <TextView
+                android:id="@+id/txt_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎥 PlayRecorder Pro"
+                android:textColor="#f8fafc"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="20dp"/>
 
-          import android.content.Intent;
-          import android.net.VpnService;
-          import android.os.Bundle;
-          import android.widget.Button;
-          import android.widget.Toast;
-          import androidx.appcompat.app.AppCompatActivity;
+            <TextView
+                android:id="@+id/txt_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Status: Ready to Record"
+                android:textColor="#38bdf8"
+                android:textSize="16sp"
+                android:layout_below="@id/txt_title"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"/>
 
-          public class MainActivity extends AppCompatActivity {
-              private static final int VPN_REQUEST_CODE = 100;
-              private boolean isRunning = false;
-              private Button btn;
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_action"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_centerInParent="true"
+                android:text="START"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#ffffff"
+                android:backgroundTint="#ef4444"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:gravity="center" />
 
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  btn = new Button(this);
-                  btn.setText("Activate Ad-Blocker");
-                  btn.setTextSize(22);
-                  setContentView(btn);
+        </RelativeLayout>
+        EOF
 
-                  btn.setOnClickListener(v -> {
-                      if (!isRunning) {
-                          Intent intent = VpnService.prepare(MainActivity.this);
-                          if (intent != null) {
-                              startActivityForResult(intent, VPN_REQUEST_CODE);
-                          } else {
-                              startVpn();
-                          }
-                      } else {
-                          stopVpn();
-                      }
-                  });
-              }
+        # 6. RecordService.java (Stable MediaProjection & Service Lifecycle)
+        cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
+        package com.fastchat.recorder;
 
-              private void startVpn() {
-                  startService(new Intent(this, LocalVpnService.class));
-                  btn.setText("Ad-Blocker Active (Click to Stop)");
-                  isRunning = true;
-                  Toast.makeText(this, "VPN Ad-Blocker Started!", Toast.LENGTH_SHORT).show();
-              }
+        import android.app.Notification;
+        import android.app.NotificationChannel;
+        import android.app.NotificationManager;
+        import android.app.Service;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.content.pm.ServiceInfo;
+        import android.hardware.display.DisplayManager;
+        import android.hardware.display.VirtualDisplay;
+        import android.media.MediaRecorder;
+        import android.media.projection.MediaProjection;
+        import android.os.Build;
+        import android.os.IBinder;
+        import android.util.DisplayMetrics;
+        import android.view.WindowManager;
+        import androidx.core.app.NotificationCompat;
+        import java.io.File;
+        import java.io.IOException;
 
-              private void stopVpn() {
-                  stopService(new Intent(this, LocalVpnService.class));
-                  btn.setText("Activate Ad-Blocker");
-                  isRunning = false;
-                  Toast.makeText(this, "VPN Ad-Blocker Stopped!", Toast.LENGTH_SHORT).show();
-              }
+        public class RecordService extends Service {
+            private static final String CHANNEL_ID = "RecorderChannel";
+            public static MediaProjection staticProjection;
+            private MediaRecorder mediaRecorder;
+            private VirtualDisplay virtualDisplay;
 
-              @Override
-              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                  super.onActivityResult(requestCode, resultCode, data);
-                  if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
-                      startVpn();
-                  }
-              }
-          }
-          EOF
+            @Override
+            public IBinder onBind(Intent intent) { return null; }
 
-      - name: Setup Setup-Java with Gradle Built-in
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
+            @Override
+            public void onCreate() {
+                super.onCreate();
+                createNotificationChannel();
+                
+                Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle("Screen Recorder Active")
+                        .setContentText("Recording engine is running safely in background...")
+                        .setSmallIcon(android.R.drawable.presence_video_online)
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
+                        .build();
 
-      - name: Set up specific Gradle Wrapper version
-        run: |
-          cd my-adblocker-app
-          # Is baar hum proper wrapper file setup kar rahe hain taaki naye gradle se conflict na ho
-          wget https://services.gradle.org/distributions/gradle-8.2-bin.zip
-          unzip -q gradle-8.2-bin.zip
-          mv gradle-8.2/bin/gradle ./gradle
-          chmod +x ./gradle
-          ./gradle wrapper --gradle-version 8.2 --distribution-type bin
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+                } else {
+                    startForeground(101, notification);
+                }
+            }
 
-      - name: Build Custom AdBlocker APK
-        run: |
-          cd my-adblocker-app
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+            @Override
+            public int onStartCommand(Intent intent, int flags, int startId) {
+                if (staticProjection != null) {
+                    setupRecorder();
+                    startRecording();
+                } else {
+                    stopSelf();
+                }
+                return START_NOT_STICKY;
+            }
 
-      - name: Upload Built APK File
-        uses: actions/upload-artifact@v4
-        with:
-          name: Custom-AdBlocker-VPN-APK
-          path: my-adblocker-app/app/build/outputs/apk/debug/*.apk
+            private void setupRecorder() {
+                mediaRecorder = new MediaRecorder();
+                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+
+                File file = new File(getExternalFilesDir(null), "Capture_" + System.currentTimeMillis() + ".mp4");
+                mediaRecorder.setOutputFile(file.getAbsolutePath());
+                
+                mediaRecorder.setVideoSize(1280, 720);
+                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+                mediaRecorder.setVideoEncodingBitRate(6000000);
+                mediaRecorder.setVideoFrameRate(30);
+
+                try {
+                    mediaRecorder.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            private void startRecording() {
+                WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                DisplayMetrics metrics = new DisplayMetrics();
+                if (windowManager != null && staticProjection != null) {
+                    windowManager.getDefaultDisplay().getMetrics(metrics);
+                    virtualDisplay = staticProjection.createVirtualDisplay(
+                            "RecorderDisplay", 1280, 720, metrics.densityDpi,
+                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                            mediaRecorder.getSurface(), null, null
+                    );
+                    try {
+                        mediaRecorder.start();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            private void createNotificationChannel() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationChannel serviceChannel = new NotificationChannel(
+                            CHANNEL_ID, "Screen Recorder Channel",
+                            NotificationManager.IMPORTANCE_HIGH
+                    );
+                    NotificationManager manager = getSystemService(NotificationManager.class);
+                    if (manager != null) manager.createNotificationChannel(serviceChannel);
+                }
+            }
+
+            @Override
+            public void onDestroy() {
+                super.onDestroy();
+                try {
+                    if (mediaRecorder != null) {
+                        mediaRecorder.stop();
+                        mediaRecorder.reset();
+                        mediaRecorder.release();
+                    }
+                    if (virtualDisplay != null) virtualDisplay.release();
+                    if (staticProjection != null) {
+                        staticProjection.stop();
+                        staticProjection = null;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        EOF
+
+        # 7. MainActivity.java (Runtime Permissions handling & State Management)
+        cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
+        package com.fastchat.recorder;
+
+        import android.Manifest;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.content.pm.PackageManager;
+        import android.media.projection.MediaProjectionManager;
+        import android.os.Build;
+        import android.os.Bundle;
+        import android.view.View;
+        import android.widget.TextView;
+        import android.widget.Toast;
+        import androidx.appcompat.app.AppCompatActivity;
+        import androidx.core.app.ActivityCompat;
+        import androidx.core.content.ContextCompat;
+        import com.google.android.material.button.MaterialButton;
+        import java.util.ArrayList;
+        import java.util.List;
+
+        public class MainActivity extends AppCompatActivity {
+            private static final int PERMISSION_REQ_CODE = 404;
+            private static final int CAPTURE_REQ_CODE = 505;
+            private boolean isRecording = false;
+            private MaterialButton btnAction;
+            private TextView txtStatus;
+            private MediaProjectionManager mpManager;
+
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+
+                btnAction = findViewById(R.id.btn_action);
+                txtStatus = findViewById(R.id.txt_status);
+                mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+
+                checkPermissions();
+
+                btnAction.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (!isRecording) {
+                            startCaptureIntent();
+                        } else {
+                            stopRecording();
+                        }
+                    }
+                });
+            }
+
+            private void checkPermissions() {
+                List<String> permissions = new ArrayList<>();
+                permissions.add(Manifest.permission.RECORD_AUDIO);
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+                }
+
+                List<String> needed = new ArrayList<>();
+                for (String p : permissions) {
+                    if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+                        needed.add(p);
+                    }
+                }
+                if (!needed.isEmpty()) {
+                    ActivityCompat.requestPermissions(this, needed.toArray(new String[0]), PERMISSION_REQ_CODE);
+                }
+            }
+
+            private void startCaptureIntent() {
+                if (mpManager != null) {
+                    startActivityForResult(mpManager.createScreenCaptureIntent(), CAPTURE_REQ_CODE);
+                }
+            }
+
+            @Override
+            protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                super.onActivityResult(requestCode, resultCode, data);
+                if (requestCode == CAPTURE_REQ_CODE && resultCode == RESULT_OK && data != null) {
+                    
+                    if (mpManager != null) {
+                        RecordService.staticProjection = mpManager.getMediaProjection(resultCode, data);
+                    }
+
+                    Intent intent = new Intent(this, RecordService.class);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent);
+                    } else {
+                        startService(intent);
+                    }
+
+                    isRecording = true;
+                    btnAction.setText("STOP");
+                    btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
+                    txtStatus.setText("Status: Recording Active 🟢");
+                }
+            }
+
+            private void stopRecording() {
+                Intent intent = new Intent(this, RecordService.class);
+                stopService(intent);
+                
+                isRecording = false;
+                btnAction.setText("START");
+                btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444));
+                txtStatus.setText("Status: Video Saved!");
+                Toast.makeText(this, "Recording Saved Successfully", Toast.LENGTH_SHORT).show();
+            }
+        }
+        EOF
+
+        # 8. Resources Setup
+        cat << 'EOF' > src/main/res/values/strings.xml
+        <resources><string name="app_name">PlayRecorder Pro</string></resources>
+        EOF
+
+    - name: 🏗️ Create Gradle Wrapper & Run Build
+      run: |
+        gradle wrapper --gradle-version 8.4
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon
+
+    - name: 🔍 Locate and Stage APK
+      run: |
+        mkdir -p final-apk/
+        find . -name "*.apk" -exec cp {} final-apk/play-recorder.apk \;
+        ls -la final-apk/
+
+    - name: Deliver APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Play-Screen-Recorder
+        path: final-apk/play-recorder.apk
