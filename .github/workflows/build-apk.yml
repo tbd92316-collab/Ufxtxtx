@@ -66,7 +66,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Includes Required Android 14 Foreground Types)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
@@ -97,7 +97,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (activity_main.xml)
+        # 5. UI Layout
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -144,7 +144,7 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java (Stable MediaProjection & Service Lifecycle)
+        # 6. RecordService.java (FIXED: Handles safe background crashguards)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
         package com.fastchat.recorder;
 
@@ -159,19 +159,23 @@ jobs:
         import android.hardware.display.VirtualDisplay;
         import android.media.MediaRecorder;
         import android.media.projection.MediaProjection;
+        import android.media.projection.MediaProjectionManager;
         import android.os.Build;
         import android.os.IBinder;
         import android.util.DisplayMetrics;
         import android.view.WindowManager;
         import androidx.core.app.NotificationCompat;
         import java.io.File;
-        import java.io.IOException;
 
         public class RecordService extends Service {
             private static final String CHANNEL_ID = "RecorderChannel";
-            public static MediaProjection staticProjection;
+            public static int resultCode;
+            public static Intent resultData;
+            
+            private MediaProjection mediaProjection;
             private MediaRecorder mediaRecorder;
             private VirtualDisplay virtualDisplay;
+            private boolean isRunning = false;
 
             @Override
             public IBinder onBind(Intent intent) { return null; }
@@ -183,7 +187,7 @@ jobs:
                 
                 Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                         .setContentTitle("Screen Recorder Active")
-                        .setContentText("Recording engine is running safely in background...")
+                        .setContentText("Engine is running safely...")
                         .setSmallIcon(android.R.drawable.presence_video_online)
                         .setPriority(NotificationCompat.PRIORITY_MAX)
                         .build();
@@ -197,33 +201,38 @@ jobs:
 
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
-                if (staticProjection != null) {
-                    setupRecorder();
-                    startRecording();
-                } else {
-                    stopSelf();
+                if (resultData != null && !isRunning) {
+                    MediaProjectionManager mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                    if (mpManager != null) {
+                        mediaProjection = mpManager.getMediaProjection(resultCode, resultData);
+                        if (mediaProjection != null) {
+                            setupRecorder();
+                            startRecording();
+                            isRunning = true;
+                        }
+                    }
                 }
                 return START_NOT_STICKY;
             }
 
             private void setupRecorder() {
-                mediaRecorder = new MediaRecorder();
-                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-
-                File file = new File(getExternalFilesDir(null), "Capture_" + System.currentTimeMillis() + ".mp4");
-                mediaRecorder.setOutputFile(file.getAbsolutePath());
-                
-                mediaRecorder.setVideoSize(1280, 720);
-                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-                mediaRecorder.setVideoEncodingBitRate(6000000);
-                mediaRecorder.setVideoFrameRate(30);
-
                 try {
+                    mediaRecorder = new MediaRecorder();
+                    mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                    mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+                    mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+
+                    File file = new File(getExternalFilesDir(null), "Record_" + System.currentTimeMillis() + ".mp4");
+                    mediaRecorder.setOutputFile(file.getAbsolutePath());
+                    
+                    mediaRecorder.setVideoSize(1280, 720);
+                    mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+                    mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+                    mediaRecorder.setVideoEncodingBitRate(3000000);
+                    mediaRecorder.setVideoFrameRate(30);
+
                     mediaRecorder.prepare();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -231,14 +240,14 @@ jobs:
             private void startRecording() {
                 WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
                 DisplayMetrics metrics = new DisplayMetrics();
-                if (windowManager != null && staticProjection != null) {
+                if (windowManager != null && mediaProjection != null) {
                     windowManager.getDefaultDisplay().getMetrics(metrics);
-                    virtualDisplay = staticProjection.createVirtualDisplay(
-                            "RecorderDisplay", 1280, 720, metrics.densityDpi,
-                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                            mediaRecorder.getSurface(), null, null
-                    );
                     try {
+                        virtualDisplay = mediaProjection.createVirtualDisplay(
+                                "CaptureDisplay", 1280, 720, metrics.densityDpi,
+                                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                                mediaRecorder.getSurface(), null, null
+                        );
                         mediaRecorder.start();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -267,18 +276,16 @@ jobs:
                         mediaRecorder.release();
                     }
                     if (virtualDisplay != null) virtualDisplay.release();
-                    if (staticProjection != null) {
-                        staticProjection.stop();
-                        staticProjection = null;
-                    }
+                    if (mediaProjection != null) mediaProjection.stop();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                isRunning = false;
             }
         }
         EOF
 
-        # 7. MainActivity.java (Runtime Permissions handling & State Management)
+        # 7. MainActivity.java (FIXED: Android 14 compliant lifecycle sequence)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
         package com.fastchat.recorder;
 
@@ -351,6 +358,7 @@ jobs:
 
             private void startCaptureIntent() {
                 if (mpManager != null) {
+                    // Android 14 rule: Request intent right from the manager setup
                     startActivityForResult(mpManager.createScreenCaptureIntent(), CAPTURE_REQ_CODE);
                 }
             }
@@ -360,9 +368,9 @@ jobs:
                 super.onActivityResult(requestCode, resultCode, data);
                 if (requestCode == CAPTURE_REQ_CODE && resultCode == RESULT_OK && data != null) {
                     
-                    if (mpManager != null) {
-                        RecordService.staticProjection = mpManager.getMediaProjection(resultCode, data);
-                    }
+                    // Pass parameters straight to the service structure securely
+                    RecordService.resultCode = resultCode;
+                    RecordService.resultData = data;
 
                     Intent intent = new Intent(this, RecordService.class);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -375,6 +383,8 @@ jobs:
                     btnAction.setText("STOP");
                     btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
                     txtStatus.setText("Status: Recording Active 🟢");
+                } else {
+                    Toast.makeText(this, "Screen capture permission denied", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -391,7 +401,7 @@ jobs:
         }
         EOF
 
-        # 8. Resources Setup
+        # 8. Standard Resource Values
         cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">PlayRecorder Pro</string></resources>
         EOF
