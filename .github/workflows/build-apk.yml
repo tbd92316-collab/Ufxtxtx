@@ -1,4 +1,4 @@
-name: Build AdBlocker VPN App
+name: Build 9D Surround Audio Mixer App
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
 
     - name: ⚙️ Setup Directory Structure
       run: |
-        mkdir -p src/main/java/com/fastchat/adblock/
+        mkdir -p src/main/java/com/fastchat/audio9d/
         mkdir -p src/main/res/layout/
         mkdir -p src/main/res/values/
 
@@ -39,7 +39,7 @@ jobs:
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories { google(); mavenCentral() }
         }
-        rootProject.name = "AdBlockVPN"
+        rootProject.name = "Audio9DMixer"
         EOF
 
         # 3. Build.gradle
@@ -49,10 +49,10 @@ jobs:
         }
 
         android {
-            namespace 'com.fastchat.adblock'
+            namespace 'com.fastchat.audio9d'
             compileSdk 34
             defaultConfig {
-                applicationId 'com.fastchat.adblock'
+                applicationId 'com.fastchat.audio9d'
                 minSdk 24
                 targetSdk 34
                 versionCode 1
@@ -66,19 +66,19 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Binds VpnService Permission)
+        # 4. AndroidManifest.xml (Standard storage access for media)
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
-            <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+            <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
             <application
-                android:label="🛡️ AdShield VPN"
+                android:label="🎧 9D Surround Studio"
                 android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
                 android:hardwareAccelerated="true">
                 
-                <activity android:name="com.fastchat.adblock.MainActivity"
+                <activity android:name="com.fastchat.audio9d.MainActivity"
                     android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
@@ -86,277 +86,301 @@ jobs:
                     </intent-filter>
                 </activity>
 
-                <service 
-                    android:name="com.fastchat.adblock.AdBlockVpnService"
-                    android:permission="android.permission.BIND_VPN_SERVICE"
-                    android:exported="false">
-                    <intent-filter>
-                        <action android:name="android.net.VpnService" />
-                    </intent-filter>
-                </service>
-
             </application>
         </manifest>
         EOF
 
-        # 5. UI Layout (activity_main.xml - Hacker Dark Look)
+        # 5. UI Layout (activity_main.xml - DJ Studio Interface)
         cat << 'EOF' > src/main/res/layout/activity_main.xml
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#090d16"
-            android:padding="24dp">
+            android:orientation="vertical"
+            android:background="#0b0f19"
+            android:padding="20dp">
 
             <TextView
-                android:id="@+id/txt_app_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛡️ AdShield VPN"
-                android:textColor="#ffffff"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="30dp"/>
-
-            <TextView
-                android:id="@+id/txt_vpn_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Status: Protection Disabled"
-                android:textColor="#94a3b8"
-                android:textSize="15sp"
-                android:layout_below="@id/txt_app_title"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="8dp"/>
-
-            <LinearLayout
-                android:id="@+id/panel_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#131c2e"
-                android:padding="20dp"
-                android:layout_below="@id/txt_vpn_status"
-                android:layout_marginTop="40dp">
+                android:text="🎧 9D Surround Studio"
+                android:textColor="#ffffff"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginTop="20dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡ DNS Level Protection Active"
-                    android:textColor="#38bdf8"
-                    android:textStyle="bold"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="This local VPN routes requests through a secure Ad-Blocking DNS. No external servers used, keeping data completely private and fast."
-                    android:textColor="#64748b"
-                    android:textSize="12sp"
-                    android:layout_marginTop="6dp"
-                    android:lineSpacingExtra="3dp"/>
-            </LinearLayout>
+            <TextView
+                android:id="@+id/txt_song_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No Song Selected"
+                android:textColor="#38bdf8"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:singleLine="true"/>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_vpn_toggle"
-                android:layout_width="180dp"
-                android:layout_height="180dp"
-                android:layout_centerInParent="true"
-                android:text="START"
-                android:textSize="22sp"
+                android:id="@+id/btn_pick"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="OPEN SONG FROM STORAGE"
+                android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="#ffffff"
-                android:backgroundTint="#ef4444"
+                android:backgroundTint="#2563eb"
+                android:layout_marginTop="30dp"
                 android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:gravity="center"
-                android:elevation="8dp"/>
+                android:insetBottom="0dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔒 Local Loopback Secure Mode"
+                android:text="🔄 9D Rotation Speed (Orbit)"
+                android:textColor="#94a3b8"
+                android:textSize="14sp"
+                android:layout_marginTop="40dp"/>
+            
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider_speed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="1"
+                android:valueTo="10"
+                android:value="4"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎚️ Stereo Spatial Depth (Surround Wide)"
+                android:textColor="#94a3b8"
+                android:textSize="14sp"
+                android:layout_marginTop="20dp"/>
+            
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider_depth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="1"
+                android:valueTo="10"
+                android:value="7"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_marginTop="50dp"
+                android:gravity="center">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_play"
+                    android:layout_width="0dp"
+                    android:layout_height="70dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="10dp"
+                    android:text="PLAY"
+                    android:backgroundTint="#22c55e"
+                    android:textStyle="bold"
+                    android:textSize="16sp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_stop"
+                    android:layout_width="0dp"
+                    android:layout_height="70dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text="STOP"
+                    android:backgroundTint="#ef4444"
+                    android:textStyle="bold"
+                    android:textSize="16sp"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="💡 Best experienced with Headphones"
                 android:textColor="#475569"
                 android:textSize="12sp"
-                android:layout_alignParentBottom="true"
-                android:layout_centerHorizontal="true"
+                android:gravity="center"
+                android:layout_marginTop="auto"
                 android:layout_marginBottom="10dp"/>
 
-        </RelativeLayout>
+        </LinearLayout>
         EOF
 
-        # 6. AdBlockVpnService.java (Core Ad-Blocking DNS Routing Architecture)
-        cat << 'EOF' > src/main/java/com/fastchat/adblock/AdBlockVpnService.java
-        package com.fastchat.adblock;
+        # 6. MainActivity.java (Core Realtime Binaural Panning DSP Engine)
+        cat << 'EOF' > src/main/java/com/fastchat/audio9d/MainActivity.java
+        package com.fastchat.audio9d;
 
+        import android.Manifest;
         import android.content.Intent;
-        import android.net.VpnService;
-        import android.os.ParcelFileDescriptor;
-
-        public class AdBlockVpnService extends VpnService {
-            private ParcelFileDescriptor vpnInterface = null;
-            public static boolean isServiceRunning = false;
-
-            @Override
-            public int onStartCommand(Intent intent, int flags, int startId) {
-                if (intent != null && "STOP".equals(intent.getAction())) {
-                    stopVpn();
-                    return START_NOT_STICKY;
-                }
-                
-                startVpn();
-                return START_STICKY;
-            }
-
-            private void startVpn() {
-                if (vpnInterface != null) return;
-
-                try {
-                    Builder builder = new Builder();
-                    builder.setSession("AdShield VPN Engine");
-                    
-                    // Route basic safe IP pool range locally
-                    builder.addAddress("10.0.0.1", 24);
-                    builder.addRoute("0.0.0.0", 0);
-
-                    // MAGIC STEP: High-Performance Public Ad-Blocking DNS Servers Integration
-                    // Routes all requests through AdGuard/Mullvad DNS filtering pools directly
-                    builder.addDnsServer("94.140.14.14"); // Primary AdGuard AdBlock DNS
-                    builder.addDnsServer("94.140.15.15"); // Secondary AdGuard AdBlock DNS
-
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        builder.setMetered(false); // Keeps OS from throttling network speeds
-                    }
-
-                    vpnInterface = builder.establish();
-                    isServiceRunning = true;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    stopSelf();
-                }
-            }
-
-            private void stopVpn() {
-                try {
-                    if (vpnInterface != null) {
-                        vpnInterface.close();
-                        vpnInterface = null;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                isServiceRunning = false;
-                stopSelf();
-            }
-
-            @Override
-            public void onDestroy() {
-                stopVpn();
-                super.onDestroy();
-            }
-        }
-        EOF
-
-        # 7. MainActivity.java (Binds VPN Activation Intent Prompts Safely)
-        cat << 'EOF' > src/main/java/com/fastchat/adblock/MainActivity.java
-        package com.fastchat.adblock;
-
-        import android.content.Intent;
-        import android.net.VpnService;
+        import android.content.pm.PackageManager;
+        import android.media.MediaPlayer;
+        import android.net.Uri;
+        import android.os.Build;
         import android.os.Bundle;
+        import android.os.Handler;
+        import android.os.Looper;
         import android.view.View;
         import android.widget.TextView;
         import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
+        import androidx.core.app.ActivityCompat;
+        import androidx.core.content.ContextCompat;
         import com.google.android.material.button.MaterialButton;
+        import com.google.android.material.slider.Slider;
 
         public class MainActivity extends AppCompatActivity {
-            private static final int VPN_REQUEST_CODE = 707;
-            private MaterialButton btnToggle;
-            private TextView txtStatus;
+            private static final int REQ_PICK_AUDIO = 901;
+            private static final int REQ_PERM = 902;
+
+            private MediaPlayer mediaPlayer;
+            private Handler panHandler = new Handler(Looper.getMainLooper());
+            private Runnable panRunnable;
+
+            private MaterialButton btnPick, btnPlay, btnStop;
+            private TextView txtSongName;
+            private Slider sliderSpeed, sliderDepth;
+
+            private Uri audioUri = null;
+            private float currentAngle = 0.0f;
+            private float speedMultiplier = 0.05f;
+            private float depthMultiplier = 0.7f;
 
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
 
-                btnToggle = findViewById(R.id.btn_vpn_toggle);
-                txtStatus = findViewById(R.id.txt_vpn_status);
+                btnPick = findViewById(R.id.btn_pick);
+                btnPlay = findViewById(R.id.btn_play);
+                btnStop = findViewById(R.id.btn_stop);
+                txtSongName = findViewById(R.id.txt_song_name);
+                sliderSpeed = findViewById(R.id.slider_speed);
+                sliderDepth = findViewById(R.id.slider_depth);
 
-                updateUI();
+                checkPermissions();
 
-                btnToggle.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (!AdBlockVpnService.isServiceRunning) {
-                            // Check system level VPN authorization status
-                            Intent intent = VpnService.prepare(MainActivity.this);
-                            if (intent != null) {
-                                startActivityForResult(intent, VPN_REQUEST_CODE);
-                            } else {
-                                startVpnService();
-                            }
-                        } else {
-                            stopVpnService();
-                        }
-                    }
+                btnPick.setOnClickListener(v -> openAudioPicker());
+
+                btnPlay.setOnClickListener(v -> start9DPlayback());
+
+                btnStop.setOnClickListener(v -> stopPlayback());
+
+                // Speed Slider Logic
+                sliderSpeed.addOnChangeListener((slider, value, fromUser) -> {
+                    speedMultiplier = value * 0.015f; 
                 });
+
+                // Depth Slider Logic
+                sliderDepth.addOnChangeListener((slider, value, fromUser) -> {
+                    depthMultiplier = value * 0.1f; 
+                });
+
+                setup9DEngineLoop();
             }
 
-            private void startVpnService() {
-                Intent intent = new Intent(this, AdBlockVpnService.class);
-                startService(intent);
-                
-                // Give OS half a second to initialize binder
-                btnToggle.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateUI();
+            private void checkPermissions() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_AUDIO}, REQ_PERM);
                     }
-                }, 500);
-            }
-
-            private void stopVpnService() {
-                Intent intent = new Intent(this, AdBlockVpnService.class);
-                intent.setAction("STOP");
-                startService(intent);
-                
-                btnToggle.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateUI();
-                    }
-                }, 500);
-            }
-
-            private void updateUI() {
-                if (AdBlockVpnService.isServiceRunning) {
-                    btnToggle.setText("STOP");
-                    btnToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E)); // Green Accent
-                    txtStatus.setText("Status: Shield Active 🟢");
-                    Toast.makeText(this, "Protection Live!", Toast.LENGTH_SHORT).show();
                 } else {
-                    btnToggle.setText("START");
-                    btnToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444)); // Red Accent
-                    txtStatus.setText("Status: Protection Disabled");
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_PERM);
+                    }
                 }
+            }
+
+            private void openAudioPicker() {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("audio/*");
+                startActivityForResult(Intent.createChooser(intent, "Select Audio Song"), REQ_PICK_AUDIO);
             }
 
             @Override
             protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                 super.onActivityResult(requestCode, resultCode, data);
-                if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
-                    startVpnService();
-                } else {
-                    Toast.makeText(this, "VPN Permission Denied!", Toast.LENGTH_SHORT).show();
+                if (requestCode == REQ_PICK_AUDIO && resultCode == RESULT_OK && data != null) {
+                    audioUri = data.getData();
+                    txtSongName.setText("Song Selected Successfully ✅");
+                    stopPlayback();
                 }
+            }
+
+            private void start9DPlayback() {
+                if (audioUri == null) {
+                    Toast.makeText(this, "Please select a song first!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (mediaPlayer != null) {
+                    mediaPlayer.start();
+                    return;
+                }
+
+                try {
+                    mediaPlayer = new MediaPlayer();
+                    mediaPlayer.setDataSource(this, audioUri);
+                    mediaPlayer.setLooping(true);
+                    mediaPlayer.prepare();
+                    mediaPlayer.start();
+                    Toast.makeText(this, "9D Live Spatialization Active 🎧", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Playback Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            // MAGIC CODE: High-Speed Mathematical Sine Wave Panner Loop
+            private void setup9DEngineLoop() {
+                panRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                            currentAngle += speedMultiplier;
+                            if (currentAngle > (2 * Math.PI)) {
+                                currentAngle = 0.0f;
+                            }
+
+                            // Calculate 3D circular coordinates using trigonometry
+                            float leftVolume = (float) (0.5 + (Math.sin(currentAngle) * depthMultiplier * 0.5));
+                            float rightVolume = (float) (0.5 + (Math.cos(currentAngle) * depthMultiplier * 0.5));
+
+                            // Clip boundaries safely
+                            if (leftVolume < 0.0f) leftVolume = 0.0f;
+                            if (leftVolume > 1.0f) leftVolume = 1.0f;
+                            if (rightVolume < 0.0f) rightVolume = 0.0f;
+                            if (rightVolume > 1.0f) rightVolume = 1.0f;
+
+                            // Apply stereo volume balancing dynamically every 30 milliseconds
+                            mediaPlayer.setVolume(leftVolume, rightVolume);
+                        }
+                        panHandler.postDelayed(this, 30);
+                    }
+                };
+                panHandler.postDelayed(panRunnable, 30);
+            }
+
+            private void stopPlayback() {
+                if (mediaPlayer != null) {
+                    mediaPlayer.stop();
+                    mediaPlayer.release();
+                    mediaPlayer = null;
+                }
+            }
+
+            @Override
+            protected void onDestroy() {
+                stopPlayback();
+                panHandler.removeCallbacks(panRunnable);
+                super.onDestroy();
             }
         }
         EOF
 
         # 8. Standard Strings Resource
         cat << 'EOF' > src/main/res/values/strings.xml
-        <resources><string name="app_name">AdShield VPN</string></resources>
+        <resources><string name="app_name">9D Surround Studio</string></resources>
         EOF
 
     - name: 🏗️ Create Gradle Wrapper & Run Build
@@ -368,11 +392,11 @@ jobs:
     - name: 🔍 Locate and Stage APK
       run: |
         mkdir -p final-apk/
-        find . -name "*.apk" -exec cp {} final-apk/adshield-vpn.apk \;
+        find . -name "*.apk" -exec cp {} final-apk/9d-surround-studio.apk \;
         ls -la final-apk/
 
     - name: Deliver APK
       uses: actions/upload-artifact@v4
       with:
-        name: AdShield-VPN-Pack
-        path: final-apk/adshield-vpn.apk
+        name: Audio-9D-Mixer-Pack
+        path: final-apk/9d-surround-studio.apk
