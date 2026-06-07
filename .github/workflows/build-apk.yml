@@ -66,7 +66,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (Standard storage access for media)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > src/main/AndroidManifest.xml
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             
@@ -90,86 +90,104 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout (activity_main.xml - DJ Studio Interface)
+        # 5. UI Layout (activity_main.xml - FIXED XML Syntax & Margins)
         cat << 'EOF' > src/main/res/layout/activity_main.xml
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
             android:background="#0b0f19"
             android:padding="20dp">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/header_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🎧 9D Surround Studio"
-                android:textColor="#ffffff"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginTop="20dp"/>
+                android:orientation="vertical"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="20dp">
 
-            <TextView
-                android:id="@+id/txt_song_name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No Song Selected"
-                android:textColor="#38bdf8"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:layout_marginTop="10dp"
-                android:singleLine="true"/>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🎧 9D Surround Studio"
+                    android:textColor="#ffffff"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+
+                <TextView
+                    android:id="@+id/txt_song_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="No Song Selected"
+                    android:textColor="#38bdf8"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:layout_marginTop="10dp"
+                    android:singleLine="true"/>
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_pick"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
+                android:layout_below="@id/header_container"
+                android:layout_marginTop="25dp"
                 android:text="OPEN SONG FROM STORAGE"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:backgroundTint="#2563eb"
-                android:layout_marginTop="30dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔄 9D Rotation Speed (Orbit)"
-                android:textColor="#94a3b8"
-                android:textSize="14sp"
-                android:layout_marginTop="40dp"/>
-            
-            <com.google.android.material.slider.Slider
-                android:id="@+id/slider_speed"
+            <LinearLayout
+                android:id="@+id/controls_panel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:valueFrom="1"
-                android:valueTo="10"
-                android:value="4"/>
+                android:orientation="vertical"
+                android:layout_below="@id/btn_pick"
+                android:layout_marginTop="30dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🎚️ Stereo Spatial Depth (Surround Wide)"
-                android:textColor="#94a3b8"
-                android:textSize="14sp"
-                android:layout_marginTop="20dp"/>
-            
-            <com.google.android.material.slider.Slider
-                android:id="@+id/slider_depth"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:valueFrom="1"
-                android:valueTo="10"
-                android:value="7"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔄 9D Rotation Speed (Orbit)"
+                    android:textColor="#94a3b8"
+                    android:textSize="14sp"/>
+                
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/slider_speed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="1"
+                    android:valueTo="10"
+                    android:value="4"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="🎚️ Stereo Spatial Depth (Surround Wide)"
+                    android:textColor="#94a3b8"
+                    android:textSize="14sp"/>
+                
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/slider_depth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="1"
+                    android:valueTo="10"
+                    android:value="7"/>
+            </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/actions_panel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:weightSum="2"
-                android:layout_marginTop="50dp"
+                android:layout_below="@id/controls_panel"
+                android:layout_marginTop="40dp"
                 android:gravity="center">
 
                 <com.google.android.material.button.MaterialButton
@@ -198,17 +216,17 @@ jobs:
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="10dp"
                 android:text="💡 Best experienced with Headphones"
                 android:textColor="#475569"
                 android:textSize="12sp"
-                android:gravity="center"
-                android:layout_marginTop="auto"
-                android:layout_marginBottom="10dp"/>
+                android:gravity="center"/>
 
-        </LinearLayout>
+        </RelativeLayout>
         EOF
 
-        # 6. MainActivity.java (Core Realtime Binaural Panning DSP Engine)
+        # 6. MainActivity.java
         cat << 'EOF' > src/main/java/com/fastchat/audio9d/MainActivity.java
         package com.fastchat.audio9d;
 
@@ -221,7 +239,6 @@ jobs:
         import android.os.Bundle;
         import android.os.Handler;
         import android.os.Looper;
-        import android.view.View;
         import android.widget.TextView;
         import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
@@ -244,7 +261,7 @@ jobs:
 
             private Uri audioUri = null;
             private float currentAngle = 0.0f;
-            private float speedMultiplier = 0.05f;
+            private float speedMultiplier = 0.06f;
             private float depthMultiplier = 0.7f;
 
             @Override
@@ -262,20 +279,11 @@ jobs:
                 checkPermissions();
 
                 btnPick.setOnClickListener(v -> openAudioPicker());
-
                 btnPlay.setOnClickListener(v -> start9DPlayback());
-
                 btnStop.setOnClickListener(v -> stopPlayback());
 
-                // Speed Slider Logic
-                sliderSpeed.addOnChangeListener((slider, value, fromUser) -> {
-                    speedMultiplier = value * 0.015f; 
-                });
-
-                // Depth Slider Logic
-                sliderDepth.addOnChangeListener((slider, value, fromUser) -> {
-                    depthMultiplier = value * 0.1f; 
-                });
+                sliderSpeed.addOnChangeListener((slider, value, fromUser) -> speedMultiplier = value * 0.015f);
+                sliderDepth.addOnChangeListener((slider, value, fromUser) -> depthMultiplier = value * 0.1f);
 
                 setup9DEngineLoop();
             }
@@ -325,13 +333,12 @@ jobs:
                     mediaPlayer.setLooping(true);
                     mediaPlayer.prepare();
                     mediaPlayer.start();
-                    Toast.makeText(this, "9D Live Spatialization Active 🎧", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "9D Studio Panning Engaged 🎧", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     Toast.makeText(this, "Playback Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             }
 
-            // MAGIC CODE: High-Speed Mathematical Sine Wave Panner Loop
             private void setup9DEngineLoop() {
                 panRunnable = new Runnable() {
                     @Override
@@ -342,17 +349,14 @@ jobs:
                                 currentAngle = 0.0f;
                             }
 
-                            // Calculate 3D circular coordinates using trigonometry
                             float leftVolume = (float) (0.5 + (Math.sin(currentAngle) * depthMultiplier * 0.5));
                             float rightVolume = (float) (0.5 + (Math.cos(currentAngle) * depthMultiplier * 0.5));
 
-                            // Clip boundaries safely
                             if (leftVolume < 0.0f) leftVolume = 0.0f;
                             if (leftVolume > 1.0f) leftVolume = 1.0f;
                             if (rightVolume < 0.0f) rightVolume = 0.0f;
                             if (rightVolume > 1.0f) rightVolume = 1.0f;
 
-                            // Apply stereo volume balancing dynamically every 30 milliseconds
                             mediaPlayer.setVolume(leftVolume, rightVolume);
                         }
                         panHandler.postDelayed(this, 30);
@@ -378,7 +382,7 @@ jobs:
         }
         EOF
 
-        # 8. Standard Strings Resource
+        # 7. Strings.xml
         cat << 'EOF' > src/main/res/values/strings.xml
         <resources><string name="app_name">9D Surround Studio</string></resources>
         EOF
