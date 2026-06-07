@@ -97,7 +97,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. UI Layout
+        # 5. UI Layout (activity_main.xml)
         cat << 'EOF' > src/main/res/layout/activity_main.xml
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
@@ -120,17 +120,34 @@ jobs:
                 android:id="@+id/txt_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Status: Ready to Record"
+                android:text="Status: Ready"
                 android:textColor="#38bdf8"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:layout_below="@id/txt_title"
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="8dp"/>
 
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_above="@+id/btn_action"
+                android:layout_marginBottom="20dp"
+                android:background="#1e293b"
+                android:padding="10dp">
+                <TextView
+                    android:id="@+id/txt_debug"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Debug Engine Active: No errors detected."
+                    android:textColor="#ef4444"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"/>
+            </ScrollView>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_action"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
                 android:layout_centerInParent="true"
                 android:text="START"
                 android:textSize="20sp"
@@ -144,7 +161,7 @@ jobs:
         </RelativeLayout>
         EOF
 
-        # 6. RecordService.java (FIXED: Handles safe background crashguards)
+        # 6. RecordService.java (With Strict Try-Catch Exception Logger)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/RecordService.java
         package com.fastchat.recorder;
 
@@ -171,11 +188,11 @@ jobs:
             private static final String CHANNEL_ID = "RecorderChannel";
             public static int resultCode;
             public static Intent resultData;
+            public static String lastError = "";
             
             private MediaProjection mediaProjection;
             private MediaRecorder mediaRecorder;
             private VirtualDisplay virtualDisplay;
-            private boolean isRunning = false;
 
             @Override
             public IBinder onBind(Intent intent) { return null; }
@@ -183,33 +200,40 @@ jobs:
             @Override
             public void onCreate() {
                 super.onCreate();
-                createNotificationChannel();
-                
-                Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle("Screen Recorder Active")
-                        .setContentText("Engine is running safely...")
-                        .setSmallIcon(android.R.drawable.presence_video_online)
-                        .setPriority(NotificationCompat.PRIORITY_MAX)
-                        .build();
+                try {
+                    createNotificationChannel();
+                    Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                            .setContentTitle("Screen Recorder Active")
+                            .setContentText("Engine running...")
+                            .setSmallIcon(android.R.drawable.presence_video_online)
+                            .build();
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-                } else {
-                    startForeground(101, notification);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+                    } else {
+                        startForeground(101, notification);
+                    }
+                } catch (Exception e) {
+                    lastError = "Service onCreate Error: " + e.getMessage();
                 }
             }
 
             @Override
             public int onStartCommand(Intent intent, int flags, int startId) {
-                if (resultData != null && !isRunning) {
-                    MediaProjectionManager mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-                    if (mpManager != null) {
-                        mediaProjection = mpManager.getMediaProjection(resultCode, resultData);
-                        if (mediaProjection != null) {
-                            setupRecorder();
-                            startRecording();
-                            isRunning = true;
+                if (resultData != null) {
+                    try {
+                        MediaProjectionManager mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                        if (mpManager != null) {
+                            mediaProjection = mpManager.getMediaProjection(resultCode, resultData);
+                            if (mediaProjection != null) {
+                                setupRecorder();
+                                startRecording();
+                            } else {
+                                lastError = "MediaProjection is NULL";
+                            }
                         }
+                    } catch (Exception e) {
+                        lastError = "StartCommand Error: " + e.toString();
                     }
                 }
                 return START_NOT_STICKY;
@@ -228,30 +252,30 @@ jobs:
                     mediaRecorder.setVideoSize(1280, 720);
                     mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
                     mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-                    mediaRecorder.setVideoEncodingBitRate(3000000);
-                    mediaRecorder.setVideoFrameRate(30);
+                    mediaRecorder.setVideoEncodingBitRate(2500000);
+                    mediaRecorder.setVideoFrameRate(25);
 
                     mediaRecorder.prepare();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    lastError = "SetupRecorder Error: " + e.toString();
                 }
             }
 
             private void startRecording() {
-                WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-                DisplayMetrics metrics = new DisplayMetrics();
-                if (windowManager != null && mediaProjection != null) {
-                    windowManager.getDefaultDisplay().getMetrics(metrics);
-                    try {
+                try {
+                    WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    if (windowManager != null && mediaProjection != null) {
+                        windowManager.getDefaultDisplay().getMetrics(metrics);
                         virtualDisplay = mediaProjection.createVirtualDisplay(
                                 "CaptureDisplay", 1280, 720, metrics.densityDpi,
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                                 mediaRecorder.getSurface(), null, null
                         );
                         mediaRecorder.start();
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+                } catch (Exception e) {
+                    lastError = "StartRecording Error: " + e.toString();
                 }
             }
 
@@ -280,12 +304,11 @@ jobs:
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                isRunning = false;
             }
         }
         EOF
 
-        # 7. MainActivity.java (FIXED: Android 14 compliant lifecycle sequence)
+        # 7. MainActivity.java (With Realtime Crash Logger UI Interface)
         cat << 'EOF' > src/main/java/com/fastchat/recorder/MainActivity.java
         package com.fastchat.recorder;
 
@@ -296,9 +319,10 @@ jobs:
         import android.media.projection.MediaProjectionManager;
         import android.os.Build;
         import android.os.Bundle;
+        import android.os.Handler;
+        import android.os.Looper;
         import android.view.View;
         import android.widget.TextView;
-        import android.widget.Toast;
         import androidx.appcompat.app.AppCompatActivity;
         import androidx.core.app.ActivityCompat;
         import androidx.core.content.ContextCompat;
@@ -311,8 +335,9 @@ jobs:
             private static final int CAPTURE_REQ_CODE = 505;
             private boolean isRecording = false;
             private MaterialButton btnAction;
-            private TextView txtStatus;
+            private TextView txtStatus, txtDebug;
             private MediaProjectionManager mpManager;
+            private Handler debugHandler = new Handler(Looper.getMainLooper());
 
             @Override
             protected void onCreate(Bundle savedInstanceState) {
@@ -321,9 +346,12 @@ jobs:
 
                 btnAction = findViewById(R.id.btn_action);
                 txtStatus = findViewById(R.id.txt_status);
+                txtDebug = findViewById(R.id.txt_debug);
+                
                 mpManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
 
                 checkPermissions();
+                startDebugMonitor();
 
                 btnAction.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -337,10 +365,21 @@ jobs:
                 });
             }
 
+            private void startDebugMonitor() {
+                debugHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (RecordService.lastError != null && !RecordService.lastError.isEmpty()) {
+                            txtDebug.setText("CRASH CAPTURED:\n" + RecordService.lastError);
+                        }
+                        debugHandler.postDelayed(this, 1000);
+                    }
+                }, 1000);
+            }
+
             private void checkPermissions() {
                 List<String> permissions = new ArrayList<>();
                 permissions.add(Manifest.permission.RECORD_AUDIO);
-                
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissions.add(Manifest.permission.POST_NOTIFICATIONS);
                 }
@@ -357,9 +396,12 @@ jobs:
             }
 
             private void startCaptureIntent() {
-                if (mpManager != null) {
-                    // Android 14 rule: Request intent right from the manager setup
-                    startActivityForResult(mpManager.createScreenCaptureIntent(), CAPTURE_REQ_CODE);
+                try {
+                    if (mpManager != null) {
+                        startActivityForResult(mpManager.createScreenCaptureIntent(), CAPTURE_REQ_CODE);
+                    }
+                } catch (Exception e) {
+                    txtDebug.setText("Intent Error: " + e.getMessage());
                 }
             }
 
@@ -367,24 +409,24 @@ jobs:
             protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                 super.onActivityResult(requestCode, resultCode, data);
                 if (requestCode == CAPTURE_REQ_CODE && resultCode == RESULT_OK && data != null) {
-                    
-                    // Pass parameters straight to the service structure securely
-                    RecordService.resultCode = resultCode;
-                    RecordService.resultData = data;
+                    try {
+                        RecordService.resultCode = resultCode;
+                        RecordService.resultData = data;
 
-                    Intent intent = new Intent(this, RecordService.class);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(intent);
-                    } else {
-                        startService(intent);
+                        Intent intent = new Intent(this, RecordService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent);
+                        } else {
+                            startService(intent);
+                        }
+
+                        isRecording = true;
+                        btnAction.setText("STOP");
+                        btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
+                        txtStatus.setText("Status: Recording Active 🟢");
+                    } catch (Exception e) {
+                        txtDebug.setText("onActivityResult Service Error: " + e.getMessage());
                     }
-
-                    isRecording = true;
-                    btnAction.setText("STOP");
-                    btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF22C55E));
-                    txtStatus.setText("Status: Recording Active 🟢");
-                } else {
-                    Toast.makeText(this, "Screen capture permission denied", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -396,7 +438,6 @@ jobs:
                 btnAction.setText("START");
                 btnAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444));
                 txtStatus.setText("Status: Video Saved!");
-                Toast.makeText(this, "Recording Saved Successfully", Toast.LENGTH_SHORT).show();
             }
         }
         EOF
