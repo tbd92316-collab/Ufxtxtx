@@ -10,39 +10,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Project Structure
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Create Project Files
         run: |
           mkdir -p BatteryApp/app/src/main/java/com/example/batteryapp
           mkdir -p BatteryApp/app/src/main/res/layout
-          mkdir -p BatteryApp/app/src/main/res/values
-
-      - name: Write Configuration Files
-        run: |
-          cat > BatteryApp/settings.gradle << 'EOF'
-          rootProject.name = "BatteryTempMonitor"
-          include ':app'
-          EOF
           
-          cat > BatteryApp/build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.4' }
-          }
-          EOF
+          # 1. Root Settings
+          echo 'rootProject.name = "BatteryTempMonitor"' > BatteryApp/settings.gradle
+          echo "include ':app'" >> BatteryApp/settings.gradle
 
-      - name: Write app/build.gradle
-        run: |
+          # 2. Root Build
+          echo 'buildscript { repositories { google(); mavenCentral() } dependencies { classpath "com.android.tools.build:gradle:8.1.4" } }' > BatteryApp/build.gradle
+
+          # 3. App Build
           cat > BatteryApp/app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
           android {
@@ -52,13 +47,13 @@ jobs:
           }
           EOF
 
-      # Yahan hum officially wrapper setup kar rahe hain bina temp folders ke
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.4'
+          # 4. AndroidManifest (ISSE ERROR AA RAHA THA)
+          cat > BatteryApp/app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.batteryapp" />
+          EOF
 
-      - name: Build Debug APK
+      - name: Build APK
         working-directory: ./BatteryApp
         run: gradle assembleDebug
 
