@@ -1,406 +1,252 @@
-name: Build 9D Surround Audio Mixer App
+name: Build Battery and Temp Monitor APK
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: 
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Setup JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: ⚙️ Setup Directory Structure
-      run: |
-        mkdir -p src/main/java/com/fastchat/audio9d/
-        mkdir -p src/main/res/layout/
-        mkdir -p src/main/res/values/
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-        # 1. Gradle Properties
-        cat << 'EOF' > gradle.properties
-        android.useAndroidX=true
-        android.enableJetifier=true
-        EOF
+      - name: Create Project Structure
+        run: |
+          mkdir -p BatteryApp/app/src/main/java/com/example/batteryapp
+          mkdir -p BatteryApp/app/src/main/res/layout
+          mkdir -p BatteryApp/app/src/main/res/values
 
-        # 2. Settings.gradle
-        cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories { google(); mavenCentral(); gradlePluginPortal() }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories { google(); mavenCentral() }
-        }
-        rootProject.name = "Audio9DMixer"
-        EOF
+      - name: Write settings.gradle
+        run: |
+          cat > BatteryApp/settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "BatteryTempMonitor"
+          include ':app'
+          EOF
 
-        # 3. Build.gradle
-        cat << 'EOF' > build.gradle
-        plugins {
-            id 'com.android.application' version '8.2.2'
-        }
+      - name: Write root build.gradle
+        run: |
+          cat > BatteryApp/build.gradle << 'EOF'
+          buildscript {
+              ext.kotlin_version = '1.8.22'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.4'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              }
+          }
+          EOF
 
-        android {
-            namespace 'com.fastchat.audio9d'
-            compileSdk 34
-            defaultConfig {
-                applicationId 'com.fastchat.audio9d'
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName "1.0"
-            }
-        }
+      - name: Write app/build.gradle
+        run: |
+          cat > BatteryApp/app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
 
-        dependencies {
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.11.0'
-        }
-        EOF
+          android {
+              namespace 'com.example.batteryapp'
+              compileSdk 34
 
-        # 4. AndroidManifest.xml
-        cat << 'EOF' > src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-            <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+              defaultConfig {
+                  applicationId "com.example.batteryapp"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
 
-            <application
-                android:label="🎧 9D Surround Studio"
-                android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
-                android:hardwareAccelerated="true">
-                
-                <activity android:name="com.fastchat.audio9d.MainActivity"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
+              buildTypes {
+                  debug {
+                      debuggable true
+                  }
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
 
-            </application>
-        </manifest>
-        EOF
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
 
-        # 5. UI Layout (activity_main.xml - FIXED XML Syntax & Margins)
-        cat << 'EOF' > src/main/res/layout/activity_main.xml
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#0b0f19"
-            android:padding="20dp">
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+          }
 
-            <LinearLayout
-                android:id="@+id/header_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_alignParentTop="true"
-                android:layout_marginTop="20dp">
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+          }
+          EOF
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🎧 9D Surround Studio"
-                    android:textColor="#ffffff"
-                    android:textSize="26sp"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
+      - name: Write gradle.properties
+        run: |
+          cat > BatteryApp/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          EOF
 
-                <TextView
-                    android:id="@+id/txt_song_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="No Song Selected"
-                    android:textColor="#38bdf8"
-                    android:textSize="14sp"
-                    android:gravity="center"
-                    android:layout_marginTop="10dp"
-                    android:singleLine="true"/>
-            </LinearLayout>
+      - name: Write AndroidManifest.xml
+        run: |
+          cat > BatteryApp/app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:label="Battery Monitor"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_pick"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_below="@id/header_container"
-                android:layout_marginTop="25dp"
-                android:text="OPEN SONG FROM STORAGE"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:backgroundTint="#2563eb"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"/>
+      - name: Write activity_main.xml
+        run: |
+          cat > BatteryApp/app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#121212">
 
-            <LinearLayout
-                android:id="@+id/controls_panel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_below="@id/btn_pick"
-                android:layout_marginTop="30dp">
+              <TextView
+                  android:id="@+id/tvBatteryPercentage"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Battery: --%"
+                  android:textColor="#4CAF50"
+                  android:textSize="32sp"
+                  android:textStyle="bold"
+                  android:layout_marginBottom="20dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔄 9D Rotation Speed (Orbit)"
-                    android:textColor="#94a3b8"
-                    android:textSize="14sp"/>
-                
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_speed"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:valueFrom="1"
-                    android:valueTo="10"
-                    android:value="4"/>
+              <TextView
+                  android:id="@+id/tvBatteryTemperature"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Temperature: --°C"
+                  android:textColor="#FF9800"
+                  android:textSize="32sp"
+                  android:textStyle="bold"/>
+          </LinearLayout>
+          EOF
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="15dp"
-                    android:text="🎚️ Stereo Spatial Depth (Surround Wide)"
-                    android:textColor="#94a3b8"
-                    android:textSize="14sp"/>
-                
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_depth"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:valueFrom="1"
-                    android:valueTo="10"
-                    android:value="7"/>
-            </LinearLayout>
+      - name: Write MainActivity.kt
+        run: |
+          cat > BatteryApp/app/src/main/java/com/example/batteryapp/MainActivity.kt << 'EOF'
+          package com.example.batteryapp
 
-            <LinearLayout
-                android:id="@+id/actions_panel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_below="@id/controls_panel"
-                android:layout_marginTop="40dp"
-                android:gravity="center">
+          import android.content.BroadcastReceiver
+          import android.content.Context
+          import android.content.Intent
+          import android.content.IntentFilter
+          import android.os.BatteryManager
+          import android.os.Bundle
+          import android.widget.TextView
+          import androidx.appcompat.app.AppCompatActivity
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_play"
-                    android:layout_width="0dp"
-                    android:layout_height="70dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:text="PLAY"
-                    android:backgroundTint="#22c55e"
-                    android:textStyle="bold"
-                    android:textSize="16sp"/>
+          class MainActivity : AppCompatActivity() {
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_stop"
-                    android:layout_width="0dp"
-                    android:layout_height="70dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="10dp"
-                    android:text="STOP"
-                    android:backgroundTint="#ef4444"
-                    android:textStyle="bold"
-                    android:textSize="16sp"/>
-            </LinearLayout>
+              private lateinit var tvBatteryPercentage: TextView
+              private lateinit var tvBatteryTemperature: TextView
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_marginBottom="10dp"
-                android:text="💡 Best experienced with Headphones"
-                android:textColor="#475569"
-                android:textSize="12sp"
-                android:gravity="center"/>
+              private val batteryReceiver = object : BroadcastReceiver() {
+                  override fun onReceive(context: Context?, intent: Intent?) {
+                      if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
+                          val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                          val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                          val batteryPct = if (scale > 0) (level * 100 / scale.toFloat()) else 0f
+                          
+                          val temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1)
+                          val tempCelsius = temperature / 10.0f
 
-        </RelativeLayout>
-        EOF
+                          tvBatteryPercentage.text = "Battery: ${batteryPct.toInt()}%"
+                          tvBatteryTemperature.text = "Temperature: $tempCelsius°C"
+                      }
+                  }
+              }
 
-        # 6. MainActivity.java
-        cat << 'EOF' > src/main/java/com/fastchat/audio9d/MainActivity.java
-        package com.fastchat.audio9d;
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContentView(R.layout.activity_main)
 
-        import android.Manifest;
-        import android.content.Intent;
-        import android.content.pm.PackageManager;
-        import android.media.MediaPlayer;
-        import android.net.Uri;
-        import android.os.Build;
-        import android.os.Bundle;
-        import android.os.Handler;
-        import android.os.Looper;
-        import android.widget.TextView;
-        import android.widget.Toast;
-        import androidx.appcompat.app.AppCompatActivity;
-        import androidx.core.app.ActivityCompat;
-        import androidx.core.content.ContextCompat;
-        import com.google.android.material.button.MaterialButton;
-        import com.google.android.material.slider.Slider;
+                  tvBatteryPercentage = findViewById(R.id.tvBatteryPercentage)
+                  tvBatteryTemperature = findViewById(R.id.tvBatteryTemperature)
+              }
 
-        public class MainActivity extends AppCompatActivity {
-            private static final int REQ_PICK_AUDIO = 901;
-            private static final int REQ_PERM = 902;
+              override fun onResume() {
+                  super.onResume()
+                  val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                  registerReceiver(batteryReceiver, filter)
+              }
 
-            private MediaPlayer mediaPlayer;
-            private Handler panHandler = new Handler(Looper.getMainLooper());
-            private Runnable panRunnable;
+              override fun onPause() {
+                  super.onPause()
+                  unregisterReceiver(batteryReceiver)
+              }
+          }
+          EOF
 
-            private MaterialButton btnPick, btnPlay, btnStop;
-            private TextView txtSongName;
-            private Slider sliderSpeed, sliderDepth;
+      - name: Generate Proper Gradle Wrapper (Bulletproof Hack)
+        run: |
+          mkdir temp_wrapper
+          cd temp_wrapper
+          gradle wrapper --gradle-version 8.4 --distribution-type all
+          cp -r gradle gradlew gradlew.bat ../BatteryApp/
+          cd ..
+          rm -rf temp_wrapper
 
-            private Uri audioUri = null;
-            private float currentAngle = 0.0f;
-            private float speedMultiplier = 0.06f;
-            private float depthMultiplier = 0.7f;
+      - name: Build Debug APK
+        working-directory: ./BatteryApp
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_main);
-
-                btnPick = findViewById(R.id.btn_pick);
-                btnPlay = findViewById(R.id.btn_play);
-                btnStop = findViewById(R.id.btn_stop);
-                txtSongName = findViewById(R.id.txt_song_name);
-                sliderSpeed = findViewById(R.id.slider_speed);
-                sliderDepth = findViewById(R.id.slider_depth);
-
-                checkPermissions();
-
-                btnPick.setOnClickListener(v -> openAudioPicker());
-                btnPlay.setOnClickListener(v -> start9DPlayback());
-                btnStop.setOnClickListener(v -> stopPlayback());
-
-                sliderSpeed.addOnChangeListener((slider, value, fromUser) -> speedMultiplier = value * 0.015f);
-                sliderDepth.addOnChangeListener((slider, value, fromUser) -> depthMultiplier = value * 0.1f);
-
-                setup9DEngineLoop();
-            }
-
-            private void checkPermissions() {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_AUDIO}, REQ_PERM);
-                    }
-                } else {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_PERM);
-                    }
-                }
-            }
-
-            private void openAudioPicker() {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("audio/*");
-                startActivityForResult(Intent.createChooser(intent, "Select Audio Song"), REQ_PICK_AUDIO);
-            }
-
-            @Override
-            protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                super.onActivityResult(requestCode, resultCode, data);
-                if (requestCode == REQ_PICK_AUDIO && resultCode == RESULT_OK && data != null) {
-                    audioUri = data.getData();
-                    txtSongName.setText("Song Selected Successfully ✅");
-                    stopPlayback();
-                }
-            }
-
-            private void start9DPlayback() {
-                if (audioUri == null) {
-                    Toast.makeText(this, "Please select a song first!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (mediaPlayer != null) {
-                    mediaPlayer.start();
-                    return;
-                }
-
-                try {
-                    mediaPlayer = new MediaPlayer();
-                    mediaPlayer.setDataSource(this, audioUri);
-                    mediaPlayer.setLooping(true);
-                    mediaPlayer.prepare();
-                    mediaPlayer.start();
-                    Toast.makeText(this, "9D Studio Panning Engaged 🎧", Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Toast.makeText(this, "Playback Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            private void setup9DEngineLoop() {
-                panRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                            currentAngle += speedMultiplier;
-                            if (currentAngle > (2 * Math.PI)) {
-                                currentAngle = 0.0f;
-                            }
-
-                            float leftVolume = (float) (0.5 + (Math.sin(currentAngle) * depthMultiplier * 0.5));
-                            float rightVolume = (float) (0.5 + (Math.cos(currentAngle) * depthMultiplier * 0.5));
-
-                            if (leftVolume < 0.0f) leftVolume = 0.0f;
-                            if (leftVolume > 1.0f) leftVolume = 1.0f;
-                            if (rightVolume < 0.0f) rightVolume = 0.0f;
-                            if (rightVolume > 1.0f) rightVolume = 1.0f;
-
-                            mediaPlayer.setVolume(leftVolume, rightVolume);
-                        }
-                        panHandler.postDelayed(this, 30);
-                    }
-                };
-                panHandler.postDelayed(panRunnable, 30);
-            }
-
-            private void stopPlayback() {
-                if (mediaPlayer != null) {
-                    mediaPlayer.stop();
-                    mediaPlayer.release();
-                    mediaPlayer = null;
-                }
-            }
-
-            @Override
-            protected void onDestroy() {
-                stopPlayback();
-                panHandler.removeCallbacks(panRunnable);
-                super.onDestroy();
-            }
-        }
-        EOF
-
-        # 7. Strings.xml
-        cat << 'EOF' > src/main/res/values/strings.xml
-        <resources><string name="app_name">9D Surround Studio</string></resources>
-        EOF
-
-    - name: 🏗️ Create Gradle Wrapper & Run Build
-      run: |
-        gradle wrapper --gradle-version 8.4
-        chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon
-
-    - name: 🔍 Locate and Stage APK
-      run: |
-        mkdir -p final-apk/
-        find . -name "*.apk" -exec cp {} final-apk/9d-surround-studio.apk \;
-        ls -la final-apk/
-
-    - name: Deliver APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: Audio-9D-Mixer-Pack
-        path: final-apk/9d-surround-studio.apk
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Battery-Temp-Monitor-APK
+          path: BatteryApp/app/build/outputs/apk/debug/app-debug.apk
