@@ -21,231 +21,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Create Project Structure
         run: |
           mkdir -p BatteryApp/app/src/main/java/com/example/batteryapp
           mkdir -p BatteryApp/app/src/main/res/layout
           mkdir -p BatteryApp/app/src/main/res/values
 
-      - name: Write settings.gradle
+      - name: Write Configuration Files
         run: |
           cat > BatteryApp/settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           rootProject.name = "BatteryTempMonitor"
           include ':app'
           EOF
-
-      - name: Write root build.gradle
-        run: |
+          
           cat > BatteryApp/build.gradle << 'EOF'
           buildscript {
-              ext.kotlin_version = '1.8.22'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.4'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-              }
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.1.4' }
           }
           EOF
 
       - name: Write app/build.gradle
         run: |
           cat > BatteryApp/app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
-          }
-
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.example.batteryapp'
               compileSdk 34
-
-              defaultConfig {
-                  applicationId "com.example.batteryapp"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-
-              buildTypes {
-                  debug {
-                      debuggable true
-                  }
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-              }
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              defaultConfig { applicationId "com.example.batteryapp"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
           }
           EOF
 
-      - name: Write gradle.properties
-        run: |
-          cat > BatteryApp/gradle.properties << 'EOF'
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=true
-          EOF
-
-      - name: Write AndroidManifest.xml
-        run: |
-          cat > BatteryApp/app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:allowBackup="true"
-                  android:label="Battery Monitor"
-                  android:supportsRtl="true"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-      - name: Write activity_main.xml
-        run: |
-          cat > BatteryApp/app/src/main/res/layout/activity_main.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:gravity="center"
-              android:background="#121212">
-
-              <TextView
-                  android:id="@+id/tvBatteryPercentage"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Battery: --%"
-                  android:textColor="#4CAF50"
-                  android:textSize="32sp"
-                  android:textStyle="bold"
-                  android:layout_marginBottom="20dp"/>
-
-              <TextView
-                  android:id="@+id/tvBatteryTemperature"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Temperature: --°C"
-                  android:textColor="#FF9800"
-                  android:textSize="32sp"
-                  android:textStyle="bold"/>
-          </LinearLayout>
-          EOF
-
-      - name: Write MainActivity.kt
-        run: |
-          cat > BatteryApp/app/src/main/java/com/example/batteryapp/MainActivity.kt << 'EOF'
-          package com.example.batteryapp
-
-          import android.content.BroadcastReceiver
-          import android.content.Context
-          import android.content.Intent
-          import android.content.IntentFilter
-          import android.os.BatteryManager
-          import android.os.Bundle
-          import android.widget.TextView
-          import androidx.appcompat.app.AppCompatActivity
-
-          class MainActivity : AppCompatActivity() {
-
-              private lateinit var tvBatteryPercentage: TextView
-              private lateinit var tvBatteryTemperature: TextView
-
-              private val batteryReceiver = object : BroadcastReceiver() {
-                  override fun onReceive(context: Context?, intent: Intent?) {
-                      if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
-                          val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                          val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                          val batteryPct = if (scale > 0) (level * 100 / scale.toFloat()) else 0f
-                          
-                          val temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1)
-                          val tempCelsius = temperature / 10.0f
-
-                          tvBatteryPercentage.text = "Battery: ${batteryPct.toInt()}%"
-                          tvBatteryTemperature.text = "Temperature: $tempCelsius°C"
-                      }
-                  }
-              }
-
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContentView(R.layout.activity_main)
-
-                  tvBatteryPercentage = findViewById(R.id.tvBatteryPercentage)
-                  tvBatteryTemperature = findViewById(R.id.tvBatteryTemperature)
-              }
-
-              override fun onResume() {
-                  super.onResume()
-                  val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                  registerReceiver(batteryReceiver, filter)
-              }
-
-              override fun onPause() {
-                  super.onPause()
-                  unregisterReceiver(batteryReceiver)
-              }
-          }
-          EOF
-
-      - name: Generate Proper Gradle Wrapper (Bulletproof Hack)
-        run: |
-          mkdir temp_wrapper
-          cd temp_wrapper
-          gradle wrapper --gradle-version 8.4 --distribution-type all
-          cp -r gradle gradlew gradlew.bat ../BatteryApp/
-          cd ..
-          rm -rf temp_wrapper
+      # Yahan hum officially wrapper setup kar rahe hain bina temp folders ke
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
 
       - name: Build Debug APK
         working-directory: ./BatteryApp
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug
 
-      - name: Upload APK to Artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Battery-Temp-Monitor-APK
